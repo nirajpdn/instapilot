@@ -1,3 +1,5 @@
+import fs from "node:fs/promises";
+import path from "node:path";
 import { chromium, type BrowserContext, type BrowserContextOptions, type Page } from "playwright";
 
 export type StoredInstagramSession = {
@@ -164,9 +166,18 @@ export async function validateInstagramSession(
 export async function postInstagramComment(
   session: StoredInstagramSession,
   input: CommentAttemptInput,
-): Promise<{ ok: boolean; commentId?: string; error?: string }> {
+): Promise<{ ok: boolean; commentId?: string; error?: string; screenshotPath?: string }> {
   try {
     return await withInstagramPage(session, async (page) => {
+      const captureFailure = async (label: string) => {
+        const dir = path.join(process.cwd(), "artifacts", "screenshots");
+        await fs.mkdir(dir, { recursive: true });
+        const safeLabel = label.replace(/[^a-z0-9_-]+/gi, "-").toLowerCase();
+        const filePath = path.join(dir, `${Date.now()}-${safeLabel}.png`);
+        await page.screenshot({ path: filePath, fullPage: true }).catch(() => undefined);
+        return filePath;
+      };
+
       await page.goto(input.postUrl, {
         waitUntil: "domcontentloaded",
         timeout: 30_000,
@@ -180,7 +191,11 @@ export async function postInstagramComment(
         .isVisible()
         .catch(() => false);
       if (loginFieldVisible) {
-        return { ok: false, error: "Session expired (redirected to login)" };
+        return {
+          ok: false,
+          error: "Session expired (redirected to login)",
+          screenshotPath: await captureFailure("session-expired"),
+        };
       }
 
       const pageUnavailable = await page
@@ -189,12 +204,20 @@ export async function postInstagramComment(
         .isVisible()
         .catch(() => false);
       if (pageUnavailable) {
-        return { ok: false, error: "Instagram post is not available or not public" };
+        return {
+          ok: false,
+          error: "Instagram post is not available or not public",
+          screenshotPath: await captureFailure("post-unavailable"),
+        };
       }
 
       const commentEditor = await findCommentComposer(page);
       if (!commentEditor) {
-        return { ok: false, error: "Comment composer not found (comments may be disabled)" };
+        return {
+          ok: false,
+          error: "Comment composer not found (comments may be disabled)",
+          screenshotPath: await captureFailure("composer-missing"),
+        };
       }
 
       await commentEditor.click();
@@ -215,7 +238,11 @@ export async function postInstagramComment(
       }
 
       if (!(await postButton.isVisible().catch(() => false))) {
-        return { ok: false, error: "Post button not available after typing comment" };
+        return {
+          ok: false,
+          error: "Post button not available after typing comment",
+          screenshotPath: await captureFailure("post-button-missing"),
+        };
       }
 
       await postButton.click();
@@ -227,7 +254,11 @@ export async function postInstagramComment(
         .isVisible()
         .catch(() => false);
       if (submitError) {
-        return { ok: false, error: "Instagram rejected the comment submission" };
+        return {
+          ok: false,
+          error: "Instagram rejected the comment submission",
+          screenshotPath: await captureFailure("submission-rejected"),
+        };
       }
 
       const visiblePostedComment = await page
@@ -243,6 +274,7 @@ export async function postInstagramComment(
     return {
       ok: false,
       error: error instanceof Error ? error.message : "Playwright posting failed",
+      screenshotPath: undefined,
     };
   }
 }

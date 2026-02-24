@@ -8,6 +8,23 @@ import { postInstagramComment, type StoredInstagramSession } from "@/lib/instagr
 import { COMMENT_TARGET_QUEUE, redisConnection } from "@/lib/queue";
 import type { CommentTargetJobPayload } from "@/types/jobs";
 
+async function logTargetEvent(
+  targetId: string,
+  level: "INFO" | "WARN" | "ERROR",
+  message: string,
+  metadata?: Record<string, unknown>,
+) {
+  await prisma.activityLog.create({
+    data: {
+      entityType: "TARGET",
+      entityId: targetId,
+      level,
+      message,
+      metadataJson: metadata,
+    },
+  });
+}
+
 async function refreshJobAggregate(jobId: string) {
   const [total, success, failed, running] = await Promise.all([
     prisma.commentJobTarget.count({ where: { jobId } }),
@@ -40,107 +57,148 @@ async function refreshJobAggregate(jobId: string) {
 }
 
 async function runTarget(payload: CommentTargetJobPayload) {
+  await logTargetEvent(payload.targetId, "INFO", "Target execution queued in worker", {
+    jobId: payload.jobId,
+    accountId: payload.accountId,
+  });
+
   await prisma.commentJobTarget.update({
     where: { id: payload.targetId },
     data: { status: CommentTargetStatus.RUNNING, startedAt: new Date() },
   });
+  await logTargetEvent(payload.targetId, "INFO", "Target execution started");
   await refreshJobAggregate(payload.jobId);
 
-  const target = await prisma.commentJobTarget.findUnique({
-    where: { id: payload.targetId },
-    include: {
-      account: true,
-      job: true,
-    },
-  });
-
-  if (!target) {
-    throw new Error(`Target not found: ${payload.targetId}`);
-  }
-
-  if (
-    !target.account.sessionEncrypted ||
-    !target.account.sessionIv ||
-    target.account.status !== InstagramAccountStatus.ACTIVE
-  ) {
-    await prisma.commentJobTarget.update({
-      where: { id: target.id },
-      data: {
-        status: CommentTargetStatus.SKIPPED,
-        errorCode: "ACCOUNT_NOT_READY",
-        errorMessage: "Account is not active or has no stored session",
-        finishedAt: new Date(),
+  try {
+    const target = await prisma.commentJobTarget.findUnique({
+      where: { id: payload.targetId },
+      include: {
+        account: true,
+        job: true,
       },
     });
-    await refreshJobAggregate(payload.jobId);
-    return;
-  }
 
-  const session = decryptJson<StoredInstagramSession>({
-    encrypted: target.account.sessionEncrypted,
-    iv: target.account.sessionIv,
-  });
+    if (!target) {
+      await logTargetEvent(payload.targetId, "ERROR", "Target record not found");
+      throw new Error(`Target not found: ${payload.targetId}`);
+    }
 
-  const priorComments = await prisma.commentJobTarget.findMany({
-    where: {
-      jobId: target.jobId,
-      generatedComment: { not: null },
-      id: { not: target.id },
-    },
-    select: { generatedComment: true },
-  });
-
-  const generatedComment = await generateUniqueComment({
-    postUrl: target.job.normalizedPostUrl,
-    excludedComments: priorComments
-      .map((item) => item.generatedComment)
-      .filter((value): value is string => Boolean(value)),
-  });
-
-  const result = await postInstagramComment(session, {
-    postUrl: target.job.normalizedPostUrl,
-    comment: generatedComment,
-  });
-
-  if (!result.ok) {
-    const errorMessage = result.error ?? "Unknown posting error";
-    if (/session expired|login|challenge|checkpoint/i.test(errorMessage)) {
-      await prisma.instagramAccount.update({
-        where: { id: target.accountId },
-        data: { status: InstagramAccountStatus.REQUIRES_RECONNECT, lastValidatedAt: new Date() },
+    if (
+      !target.account.sessionEncrypted ||
+      !target.account.sessionIv ||
+      target.account.status !== InstagramAccountStatus.ACTIVE
+    ) {
+      await logTargetEvent(target.id, "WARN", "Account not ready for posting", {
+        accountStatus: target.account.status,
+        hasSession: Boolean(target.account.sessionEncrypted && target.account.sessionIv),
       });
+      await prisma.commentJobTarget.update({
+        where: { id: target.id },
+        data: {
+          status: CommentTargetStatus.SKIPPED,
+          errorCode: "ACCOUNT_NOT_READY",
+          errorMessage: "Account is not active or has no stored session",
+          finishedAt: new Date(),
+        },
+      });
+      await refreshJobAggregate(payload.jobId);
+      return;
+    }
+
+    const session = decryptJson<StoredInstagramSession>({
+      encrypted: target.account.sessionEncrypted,
+      iv: target.account.sessionIv,
+    });
+
+    const priorComments = await prisma.commentJobTarget.findMany({
+      where: {
+        jobId: target.jobId,
+        generatedComment: { not: null },
+        id: { not: target.id },
+      },
+      select: { generatedComment: true },
+    });
+
+    const generatedComment = await generateUniqueComment({
+      postUrl: target.job.normalizedPostUrl,
+      excludedComments: priorComments
+        .map((item) => item.generatedComment)
+        .filter((value): value is string => Boolean(value)),
+    });
+    await logTargetEvent(target.id, "INFO", "Generated unique comment", {
+      length: generatedComment.length,
+    });
+
+    const result = await postInstagramComment(session, {
+      postUrl: target.job.normalizedPostUrl,
+      comment: generatedComment,
+    });
+
+    if (!result.ok) {
+      const errorMessage = result.error ?? "Unknown posting error";
+      await logTargetEvent(target.id, "ERROR", "Comment posting failed", {
+        error: errorMessage,
+        screenshotPath: result.screenshotPath,
+      });
+      if (/session expired|login|challenge|checkpoint/i.test(errorMessage)) {
+        await prisma.instagramAccount.update({
+          where: { id: target.accountId },
+          data: { status: InstagramAccountStatus.REQUIRES_RECONNECT, lastValidatedAt: new Date() },
+        });
+      }
+
+      await prisma.commentJobTarget.update({
+        where: { id: target.id },
+        data: {
+          status: CommentTargetStatus.FAILED,
+          generatedComment,
+          errorCode: "POST_FAILED",
+          errorMessage,
+          finishedAt: new Date(),
+        },
+      });
+      await refreshJobAggregate(payload.jobId);
+      return;
     }
 
     await prisma.commentJobTarget.update({
       where: { id: target.id },
       data: {
-        status: CommentTargetStatus.FAILED,
+        status: CommentTargetStatus.SUCCESS,
         generatedComment,
-        errorCode: "POST_FAILED",
-        errorMessage,
+        instagramCommentId: result.commentId,
         finishedAt: new Date(),
       },
     });
+    await logTargetEvent(target.id, "INFO", "Comment posted successfully", {
+      commentLength: generatedComment.length,
+    });
+
+    await prisma.instagramAccount.update({
+      where: { id: target.accountId },
+      data: { lastUsedAt: new Date() },
+    });
+
     await refreshJobAggregate(payload.jobId);
-    return;
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Unhandled worker error";
+    await logTargetEvent(payload.targetId, "ERROR", "Unhandled target execution error", {
+      error: message,
+    }).catch(() => undefined);
+    await prisma.commentJobTarget
+      .update({
+        where: { id: payload.targetId },
+        data: {
+          status: CommentTargetStatus.FAILED,
+          errorCode: "UNHANDLED_WORKER_ERROR",
+          errorMessage: message,
+          finishedAt: new Date(),
+        },
+      })
+      .catch(() => undefined);
+    await refreshJobAggregate(payload.jobId).catch(() => undefined);
+    throw error;
   }
-
-  await prisma.commentJobTarget.update({
-    where: { id: target.id },
-    data: {
-      status: CommentTargetStatus.SUCCESS,
-      generatedComment,
-      instagramCommentId: result.commentId,
-      finishedAt: new Date(),
-    },
-  });
-
-  await prisma.instagramAccount.update({
-    where: { id: target.accountId },
-    data: { lastUsedAt: new Date() },
-  });
-
-  await refreshJobAggregate(payload.jobId);
 }
 
 const worker = new Worker<CommentTargetJobPayload>(

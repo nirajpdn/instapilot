@@ -49,3 +49,4 @@ Next.js full-stack scaffold for a multi-account Instagram comment manager with:
 
 - Set `PLAYWRIGHT_HEADLESS=false` in `.env` if you want browser windows visible during worker runs.
 - Instagram UI can change frequently; selectors may need updates.
+- Failure screenshots are saved under `artifacts/screenshots/` and referenced in job target logs.
