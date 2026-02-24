@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
+import { LogoutButton } from "@/app/logout-button";
+
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -22,6 +24,9 @@ export default function RootLayout({
             <Link href="/accounts">Accounts</Link>
             <Link href="/commenter">Commenter</Link>
             <Link href="/jobs">Jobs</Link>
+            <div style={{ marginLeft: "auto" }}>
+              <LogoutButton />
+            </div>
           </nav>
           {children}
         </div>

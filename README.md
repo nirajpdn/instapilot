@@ -14,11 +14,12 @@ Next.js full-stack scaffold for a multi-account Instagram comment manager with:
 1. Install dependencies: `npm install`
 2. Copy env file: `cp .env.example .env`
 3. Fill required env values (`DATABASE_URL`, `REDIS_URL`, `SESSION_ENCRYPTION_KEY_BASE64`, `OPENAI_API_KEY`)
-4. Run Prisma:
+4. Set admin auth env values (`ADMIN_PASSWORD`, `ADMIN_SESSION_SECRET`)
+5. Run Prisma:
    - `npm run prisma:generate`
    - `npm run prisma:migrate`
-5. Start web app: `npm run dev`
-6. Start worker in another terminal: `npm run worker`
+6. Start web app: `npm run dev`
+7. Start worker in another terminal: `npm run worker`
 
 ## What is implemented now
 
@@ -58,3 +59,4 @@ Fallback:
 - Set `PLAYWRIGHT_HEADLESS=false` in `.env` if you want browser windows visible during worker runs.
 - Instagram UI can change frequently; selectors may need updates.
 - Failure screenshots are saved under `artifacts/screenshots/` and referenced in job target logs.
+- Dashboard and APIs are protected by admin login at `/login`.
