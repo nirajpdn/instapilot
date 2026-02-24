@@ -1,0 +1,93 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum InstagramAccountStatus {
+  ACTIVE
+  REQUIRES_RECONNECT
+  DISCONNECTED
+}
+
+enum CommentJobStatus {
+  QUEUED
+  RUNNING
+  COMPLETED
+  FAILED
+  PARTIAL
+}
+
+enum CommentTargetStatus {
+  QUEUED
+  RUNNING
+  SUCCESS
+  FAILED
+  SKIPPED
+}
+
+model InstagramAccount {
+  id               String                 @id @default(cuid())
+  username         String                 @unique
+  displayName      String?
+  status           InstagramAccountStatus @default(DISCONNECTED)
+  sessionEncrypted String?
+  sessionIv        String?
+  sessionVersion   Int                    @default(1)
+  lastValidatedAt  DateTime?
+  lastUsedAt       DateTime?
+  createdAt        DateTime               @default(now())
+  updatedAt        DateTime               @updatedAt
+  targets          CommentJobTarget[]
+}
+
+model CommentJob {
+  id               String            @id @default(cuid())
+  postUrl          String
+  normalizedPostUrl String
+  postType         String?
+  status           CommentJobStatus  @default(QUEUED)
+  totalTargets     Int               @default(0)
+  completedTargets Int               @default(0)
+  failedTargets    Int               @default(0)
+  createdAt        DateTime          @default(now())
+  startedAt        DateTime?
+  completedAt      DateTime?
+  targets          CommentJobTarget[]
+}
+
+model CommentJobTarget {
+  id                 String             @id @default(cuid())
+  jobId               String
+  accountId           String
+  status              CommentTargetStatus @default(QUEUED)
+  generatedComment    String?
+  instagramCommentId  String?
+  errorCode           String?
+  errorMessage        String?
+  startedAt           DateTime?
+  finishedAt          DateTime?
+  createdAt           DateTime           @default(now())
+  updatedAt           DateTime           @updatedAt
+  account             InstagramAccount   @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  job                 CommentJob         @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  @@unique([jobId, accountId])
+  @@index([jobId, status])
+  @@index([accountId, status])
+}
+
+model ActivityLog {
+  id         String   @id @default(cuid())
+  entityType String
+  entityId   String
+  level      String
+  message    String
+  metadataJson Json?
+  createdAt  DateTime @default(now())
+
+  @@index([entityType, entityId, createdAt])
+}
