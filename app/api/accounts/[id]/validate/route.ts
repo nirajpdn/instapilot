@@ -6,6 +6,8 @@ import { prisma } from "@/lib/db";
 import { decryptJson } from "@/lib/encryption";
 import { validateInstagramSession, type StoredInstagramSession } from "@/lib/instagram";
 
+export const runtime = "nodejs";
+
 const paramsSchema = z.object({ id: z.string().min(1) });
 
 export async function POST(

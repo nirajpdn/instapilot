@@ -37,8 +37,16 @@ Next.js full-stack scaffold for a multi-account Instagram comment manager with:
 - Failure screenshots and richer anti-rate-limit controls
 - Admin auth
 
-## Current connection flow (temporary MVP)
+## Current connection flow (MVP)
 
+Preferred:
+1. Open `/accounts`
+2. Enter the Instagram username (and optional display name)
+3. Click `Start Browser Login`
+4. Log in to Instagram in the opened Playwright browser window
+5. Click `Complete Login` in the dashboard
+
+Fallback:
 1. Run `npm run connect:export-session`
 2. Log in to the Instagram account in the opened browser
 3. Press Enter in the terminal

@@ -2,9 +2,12 @@ import { NextResponse } from "next/server";
 import { InstagramAccountStatus } from "@prisma/client";
 import { z } from "zod";
 
+import { completeInstagramConnectSession } from "@/lib/connect-session";
 import { prisma } from "@/lib/db";
 import { encryptJson } from "@/lib/encryption";
 import { sessionFromPlaywrightStorageState } from "@/lib/instagram";
+
+export const runtime = "nodejs";
 
 const cookieSchema = z.object({
   name: z.string(),
@@ -20,15 +23,22 @@ const cookieSchema = z.object({
 const bodySchema = z.object({
   username: z.string().min(1).transform((value) => value.trim().toLowerCase()),
   displayName: z.string().trim().optional(),
-  storageState: z.object({
-    cookies: z.array(cookieSchema),
-  }),
+  storageState: z
+    .object({
+      cookies: z.array(cookieSchema),
+    })
+    .optional(),
+  connectSessionId: z.string().uuid().optional(),
+}).refine((value) => value.storageState || value.connectSessionId, {
+  message: "Provide storageState or connectSessionId",
 });
 
 export async function POST(request: Request) {
   try {
     const body = bodySchema.parse(await request.json());
-    const session = sessionFromPlaywrightStorageState(body.storageState);
+    const storageState =
+      body.storageState ?? (await completeInstagramConnectSession(body.connectSessionId!));
+    const session = sessionFromPlaywrightStorageState(storageState);
     const encrypted = encryptJson(session);
 
     const account = await prisma.instagramAccount.upsert({

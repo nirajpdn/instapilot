@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 
 type AccountRow = {
   id: string;
@@ -21,10 +21,47 @@ export function AccountsClient({ initialAccounts }: Props) {
   const [username, setUsername] = useState("");
   const [displayName, setDisplayName] = useState("");
   const [storageState, setStorageState] = useState("");
+  const [connectSessionId, setConnectSessionId] = useState<string | null>(null);
+  const [connectSessionState, setConnectSessionState] = useState<string | null>(null);
+  const [connectSessionUrl, setConnectSessionUrl] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+
+  useEffect(() => {
+    if (!connectSessionId) {
+      return;
+    }
+
+    let cancelled = false;
+    const poll = async () => {
+      try {
+        const response = await fetch(`/api/accounts/connect/${connectSessionId}/status`);
+        const data = (await response.json()) as {
+          session?: { state?: string; currentUrl?: string | null };
+          error?: string;
+        };
+        if (!response.ok) {
+          throw new Error(data.error ?? "Failed to poll connect status");
+        }
+        if (cancelled) return;
+        setConnectSessionState(data.session?.state ?? null);
+        setConnectSessionUrl(data.session?.currentUrl ?? null);
+      } catch (e) {
+        if (!cancelled) {
+          setError(e instanceof Error ? e.message : "Connect status polling failed");
+        }
+      }
+    };
+
+    void poll();
+    const interval = window.setInterval(() => void poll(), 2500);
+    return () => {
+      cancelled = true;
+      window.clearInterval(interval);
+    };
+  }, [connectSessionId]);
 
   async function runAccountAction(path: string) {
     setError(null);
@@ -41,9 +78,106 @@ export function AccountsClient({ initialAccounts }: Props) {
     <div className="card">
       <h1>Accounts</h1>
       <p className="muted">
-        Connect Instagram accounts by pasting Playwright <code>storageState</code> JSON (temporary
-        MVP flow).
+        Connect via in-app browser login or paste Playwright <code>storageState</code> JSON as a
+        fallback.
       </p>
+
+      <div
+        style={{
+          border: "1px solid #e5e7eb",
+          borderRadius: 10,
+          padding: 12,
+          marginBottom: 16,
+          background: "#fafafa",
+        }}
+      >
+        <h2 style={{ marginTop: 0, marginBottom: 8, fontSize: 16 }}>Browser Login Flow</h2>
+        <p className="muted" style={{ marginTop: 0 }}>
+          Starts a local Playwright browser window from the backend. Log into Instagram there, then
+          click complete below.
+        </p>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+          <button
+            type="button"
+            disabled={isPending || Boolean(connectSessionId)}
+            onClick={() => {
+              setError(null);
+              setFeedback(null);
+              startTransition(async () => {
+                try {
+                  const response = await fetch("/api/accounts/connect/start", { method: "POST" });
+                  const data = (await response.json()) as {
+                    session?: { id: string; state: string };
+                    error?: string;
+                  };
+                  if (!response.ok || !data.session) {
+                    throw new Error(data.error ?? "Failed to start login flow");
+                  }
+                  setConnectSessionId(data.session.id);
+                  setConnectSessionState(data.session.state);
+                  setFeedback("Browser launched. Complete Instagram login, then click Complete Login.");
+                } catch (e) {
+                  setError(e instanceof Error ? e.message : "Failed to start login flow");
+                }
+              });
+            }}
+          >
+            Start Browser Login
+          </button>
+          <button
+            type="button"
+            disabled={isPending || !connectSessionId || !username.trim()}
+            onClick={() => {
+              setError(null);
+              setFeedback(null);
+              startTransition(async () => {
+                try {
+                  const response = await fetch("/api/accounts/connect/complete", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                      username,
+                      displayName: displayName || undefined,
+                      connectSessionId,
+                    }),
+                  });
+                  const data = (await response.json()) as {
+                    ok?: boolean;
+                    error?: string;
+                    account?: { username: string };
+                  };
+                  if (!response.ok) {
+                    throw new Error(data.error ?? "Failed to complete login");
+                  }
+                  setFeedback(`Connected @${data.account?.username ?? username}`);
+                  setConnectSessionId(null);
+                  setConnectSessionState(null);
+                  setConnectSessionUrl(null);
+                  setStorageState("");
+                  setUsername("");
+                  setDisplayName("");
+                  router.refresh();
+                } catch (e) {
+                  setError(e instanceof Error ? e.message : "Failed to complete login");
+                }
+              });
+            }}
+          >
+            Complete Login
+          </button>
+        </div>
+        {connectSessionId ? (
+          <p className="muted" style={{ marginBottom: 0 }}>
+            Session: <code>{connectSessionId}</code> • State: <code>{connectSessionState ?? "-"}</code>
+            {connectSessionUrl ? (
+              <>
+                {" "}
+                • URL: <code>{connectSessionUrl}</code>
+              </>
+            ) : null}
+          </p>
+        ) : null}
+      </div>
 
       <form
         onSubmit={(event) => {
@@ -77,6 +211,7 @@ export function AccountsClient({ initialAccounts }: Props) {
           });
         }}
       >
+        <h2 style={{ marginTop: 0, fontSize: 16 }}>Paste StorageState (Fallback)</h2>
         <div style={{ display: "grid", gap: 10 }}>
           <div>
             <label htmlFor="username">Instagram username</label>
