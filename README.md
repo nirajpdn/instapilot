@@ -26,10 +26,26 @@ Next.js full-stack scaffold for a multi-account Instagram comment manager with:
 - Dashboard pages (`/accounts`, `/commenter`, `/jobs`, `/jobs/[id]`)
 - API routes for listing accounts, creating comment jobs, fetching job details
 - Queue + worker skeleton
+- Live Playwright session validation using stored cookies
+- Playwright comment posting routine with selector fallbacks and randomized delays
+- Dashboard connect flow using pasted Playwright `storageState` JSON
 
-## What is still stubbed
+## What is still stubbed / incomplete
 
-- Instagram login/connect flow (Playwright)
-- Session validation with Instagram
-- Actual comment posting automation
+- In-dashboard Instagram login/connect browser flow (currently use `npm run connect:export-session`)
+- Robust selector maintenance for Instagram UI changes
+- Failure screenshots and richer anti-rate-limit controls
 - Admin auth
+
+## Current connection flow (temporary MVP)
+
+1. Run `npm run connect:export-session`
+2. Log in to the Instagram account in the opened browser
+3. Press Enter in the terminal
+4. Copy the printed `storageState` JSON
+5. Paste it into `/accounts`
+
+## Notes
+
+- Set `PLAYWRIGHT_HEADLESS=false` in `.env` if you want browser windows visible during worker runs.
+- Instagram UI can change frequently; selectors may need updates.

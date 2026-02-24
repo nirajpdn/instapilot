@@ -103,13 +103,21 @@ async function runTarget(payload: CommentTargetJobPayload) {
   });
 
   if (!result.ok) {
+    const errorMessage = result.error ?? "Unknown posting error";
+    if (/session expired|login|challenge|checkpoint/i.test(errorMessage)) {
+      await prisma.instagramAccount.update({
+        where: { id: target.accountId },
+        data: { status: InstagramAccountStatus.REQUIRES_RECONNECT, lastValidatedAt: new Date() },
+      });
+    }
+
     await prisma.commentJobTarget.update({
       where: { id: target.id },
       data: {
         status: CommentTargetStatus.FAILED,
         generatedComment,
         errorCode: "POST_FAILED",
-        errorMessage: result.error ?? "Unknown posting error",
+        errorMessage,
         finishedAt: new Date(),
       },
     });
