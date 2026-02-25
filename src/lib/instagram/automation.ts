@@ -1,6 +1,11 @@
 import fs from "node:fs/promises";
 import path from "node:path";
-import { chromium, type BrowserContext, type BrowserContextOptions, type Page } from "playwright";
+import {
+  chromium,
+  type BrowserContext,
+  type BrowserContextOptions,
+  type Page,
+} from "playwright";
 
 export type StoredInstagramSession = {
   cookies: Array<{
@@ -84,7 +89,9 @@ async function dismissInstagramPrompts(page: Page) {
 export function sessionFromPlaywrightStorageState(
   storageState: PlaywrightStorageStateInput,
 ): StoredInstagramSession {
-  const cookies = Array.isArray(storageState.cookies) ? storageState.cookies : [];
+  const cookies = Array.isArray(storageState.cookies)
+    ? storageState.cookies
+    : [];
   if (cookies.length === 0) {
     throw new Error("Storage state does not contain cookies");
   }
@@ -99,7 +106,9 @@ export function sessionFromPlaywrightStorageState(
       httpOnly: Boolean(cookie.httpOnly),
       secure: Boolean(cookie.secure),
       sameSite:
-        cookie.sameSite === "Strict" || cookie.sameSite === "None" ? cookie.sameSite : "Lax",
+        cookie.sameSite === "Strict" || cookie.sameSite === "None"
+          ? cookie.sameSite
+          : "Lax",
     })),
   };
 }
@@ -109,7 +118,8 @@ export async function validateInstagramSession(
 ): Promise<{ valid: boolean; reason?: string }> {
   const sessionCookie = session.cookies.find(
     (cookie) =>
-      cookie.name.toLowerCase() === "sessionid" && cookie.domain.toLowerCase().includes("instagram"),
+      cookie.name.toLowerCase() === "sessionid" &&
+      cookie.domain.toLowerCase().includes("instagram"),
   );
   if (!sessionCookie?.value) {
     return { valid: false, reason: "Missing Instagram sessionid cookie" };
@@ -136,21 +146,37 @@ export async function validateInstagramSession(
       const challengeUrl = page.url();
       if (
         /challenge|checkpoint|accounts\/login/i.test(challengeUrl) ||
-        (await page.getByText(/suspend|verify|confirm/i).first().isVisible().catch(() => false))
+        (await page
+          .getByText(/suspend|verify|confirm/i)
+          .first()
+          .isVisible()
+          .catch(() => false))
       ) {
-        return { valid: false, reason: "Instagram challenge/checkpoint detected" };
+        return {
+          valid: false,
+          reason: "Instagram challenge/checkpoint detected",
+        };
       }
 
       const homeIndicators = await Promise.any([
-        page.getByRole("link", { name: /home/i }).first().waitFor({ timeout: 8_000 }),
-        page.locator('svg[aria-label="Home"]').first().waitFor({ timeout: 8_000 }),
+        page
+          .getByRole("link", { name: /home/i })
+          .first()
+          .waitFor({ timeout: 8_000 }),
+        page
+          .locator('svg[aria-label="Home"]')
+          .first()
+          .waitFor({ timeout: 8_000 }),
         page.locator("main").first().waitFor({ timeout: 8_000 }),
       ])
         .then(() => true)
         .catch(() => false);
 
       if (!homeIndicators) {
-        return { valid: false, reason: "Could not confirm authenticated Instagram page" };
+        return {
+          valid: false,
+          reason: "Could not confirm authenticated Instagram page",
+        };
       }
 
       return { valid: true };
@@ -158,7 +184,8 @@ export async function validateInstagramSession(
   } catch (error) {
     return {
       valid: false,
-      reason: error instanceof Error ? error.message : "Playwright validation failed",
+      reason:
+        error instanceof Error ? error.message : "Playwright validation failed",
     };
   }
 }
@@ -166,16 +193,24 @@ export async function validateInstagramSession(
 export async function postInstagramComment(
   session: StoredInstagramSession,
   input: CommentAttemptInput,
-): Promise<{ ok: boolean; commentId?: string; error?: string; screenshotPath?: string }> {
+): Promise<{
+  ok: boolean;
+  commentId?: string;
+  error?: string;
+  screenshotPath?: string;
+}> {
   try {
     return await withInstagramPage(session, async (page) => {
       const captureFailure = async (label: string) => {
-        const dir = path.join(process.cwd(), "artifacts", "screenshots");
+        const dir = path.join(process.cwd(), "screenshots");
         await fs.mkdir(dir, { recursive: true });
         const safeLabel = label.replace(/[^a-z0-9_-]+/gi, "-").toLowerCase();
-        const filePath = path.join(dir, `${Date.now()}-${safeLabel}.png`);
-        await page.screenshot({ path: filePath, fullPage: true }).catch(() => undefined);
-        return filePath;
+        const fileName = `${Date.now()}-${safeLabel}.png`;
+        const filePath = path.join(dir, fileName);
+        await page
+          .screenshot({ path: filePath, fullPage: true })
+          .catch(() => undefined);
+        return `/api/screenshot/${fileName}`;
       };
 
       await page.goto(input.postUrl, {
@@ -268,12 +303,16 @@ export async function postInstagramComment(
         .catch(() => false);
 
       // Instagram does not expose a stable comment id in the UI DOM.
-      return { ok: true, commentId: visiblePostedComment ? undefined : undefined };
+      return {
+        ok: true,
+        commentId: visiblePostedComment ? undefined : undefined,
+      };
     });
   } catch (error) {
     return {
       ok: false,
-      error: error instanceof Error ? error.message : "Playwright posting failed",
+      error:
+        error instanceof Error ? error.message : "Playwright posting failed",
       screenshotPath: undefined,
     };
   }

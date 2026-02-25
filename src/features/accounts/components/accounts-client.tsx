@@ -566,32 +566,34 @@ export function AccountsClient({ initialAccounts }: Props) {
                     </td>
                     <td>
                       <div className="flex flex-wrap gap-2">
-                        <button
-                          type="button"
-                          disabled={busyId === account.id || isPending}
-                          className="btn-warn"
-                          onClick={() => {
-                            setBusyId(account.id);
-                            startTransition(async () => {
-                              try {
-                                await startBrowserLoginForAccount({
-                                  username: account.username,
-                                  displayName: account.displayName,
-                                });
-                              } catch (e) {
-                                setError(
-                                  e instanceof Error
-                                    ? e.message
-                                    : "Failed to start reconnect flow",
-                                );
-                              } finally {
-                                setBusyId(null);
-                              }
-                            });
-                          }}
-                        >
-                          Reconnect
-                        </button>
+                        {account.status === "REQUIRES_RECONNECT" && (
+                          <button
+                            type="button"
+                            disabled={busyId === account.id || isPending}
+                            className="btn-warn"
+                            onClick={() => {
+                              setBusyId(account.id);
+                              startTransition(async () => {
+                                try {
+                                  await startBrowserLoginForAccount({
+                                    username: account.username,
+                                    displayName: account.displayName,
+                                  });
+                                } catch (e) {
+                                  setError(
+                                    e instanceof Error
+                                      ? e.message
+                                      : "Failed to start reconnect flow",
+                                  );
+                                } finally {
+                                  setBusyId(null);
+                                }
+                              });
+                            }}
+                          >
+                            Reconnect
+                          </button>
+                        )}
                         <button
                           type="button"
                           disabled={busyId === account.id || isPending}

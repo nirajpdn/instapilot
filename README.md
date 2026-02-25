@@ -94,7 +94,7 @@ src/
 - UI styling uses Tailwind CSS v4 via `@import "tailwindcss"` in `/app/globals.css`.
 - Set `PLAYWRIGHT_HEADLESS=false` in `.env` if you want browser windows visible during worker runs.
 - Instagram UI can change frequently; selectors may need updates.
-- Failure screenshots are saved under `artifacts/screenshots/` and referenced in job target logs.
+- Failure screenshots are saved under `screenshots/` and referenced in job target logs.
 - Dashboard and APIs are protected by admin login at `/login`.
 - Each account has configurable throttle settings in `/accounts`:
   - `Min Delay` / `Max Delay` (ms): randomized pre-post jitter
@@ -102,7 +102,7 @@ src/
 - `/jobs/[id]` uses SSE (`/api/jobs/:id/events`) to auto-refresh job targets and logs.
 - `/jobs/[id]` includes job controls: `Pause`, `Resume`, `Cancel`.
 - `/commenter` supports `Dry run` mode (generates comments and logs, skips Instagram posting).
-- Failure screenshots in logs can be previewed inline and opened via `/api/artifacts/screenshot`.
+- Failure screenshots in logs can be previewed inline and opened via `/api/screenshot/[file].png`.
 
 ## After schema changes
 

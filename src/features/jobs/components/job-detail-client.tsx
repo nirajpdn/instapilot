@@ -277,20 +277,14 @@ export function JobDetailClient({ jobId, initialJob, initialLogs }: Props) {
                         <div className="mt-2 space-y-2">
                           <a
                             className="text-sm font-medium text-brand-700 hover:text-brand-600"
-                            href={`/api/artifacts/screenshot?path=${encodeURIComponent(
-                              (log.metadataJson as { screenshotPath: string })
-                                .screenshotPath,
-                            )}`}
+                            href={(log.metadataJson as { screenshotPath: string }).screenshotPath}
                             target="_blank"
                             rel="noreferrer"
                           >
                             View screenshot
                           </a>
                           <img
-                            src={`/api/artifacts/screenshot?path=${encodeURIComponent(
-                              (log.metadataJson as { screenshotPath: string })
-                                .screenshotPath,
-                            )}`}
+                            src={(log.metadataJson as { screenshotPath: string }).screenshotPath}
                             alt="Failure screenshot"
                             className="max-w-52 rounded-lg border border-paper-200 shadow-sm"
                           />

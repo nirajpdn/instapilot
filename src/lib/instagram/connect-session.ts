@@ -1,8 +1,37 @@
 import crypto from "node:crypto";
 
-import { chromium, type Browser, type BrowserContext, type Page } from "playwright";
+import {
+  chromium,
+  type Browser,
+  type BrowserContext,
+  type Page,
+} from "playwright";
 
-type ConnectSessionState = "PENDING_LOGIN" | "READY_TO_COMPLETE" | "EXPIRED" | "CLOSED";
+type ConnectSessionState =
+  | "PENDING_LOGIN"
+  | "READY_TO_COMPLETE"
+  | "EXPIRED"
+  | "CLOSED";
+
+type storageState = {
+  cookies: {
+    name: string;
+    value: string;
+    domain: string;
+    path: string;
+    expires: number;
+    httpOnly: boolean;
+    secure: boolean;
+    sameSite: "Strict" | "Lax" | "None";
+  }[];
+  origins: {
+    origin: string;
+    localStorage: {
+      name: string;
+      value: string;
+    }[];
+  }[];
+};
 
 type ConnectSessionRecord = {
   id: string;
@@ -21,7 +50,8 @@ declare global {
   var instagramConnectSessions: Map<string, ConnectSessionRecord> | undefined;
 }
 
-const store = global.instagramConnectSessions ?? new Map<string, ConnectSessionRecord>();
+const store =
+  global.instagramConnectSessions ?? new Map<string, ConnectSessionRecord>();
 if (!global.instagramConnectSessions) {
   global.instagramConnectSessions = store;
 }
