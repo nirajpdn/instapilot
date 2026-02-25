@@ -63,3 +63,4 @@ Fallback:
 - Each account has configurable throttle settings in `/accounts`:
   - `Min Delay` / `Max Delay` (ms): randomized pre-post jitter
   - `Cooldown` (sec): minimum time between comments for that account
+- `/jobs/[id]` uses SSE (`/api/jobs/:id/events`) to auto-refresh job targets and logs.
