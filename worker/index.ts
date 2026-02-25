@@ -1,12 +1,19 @@
-import { CommentJobStatus, CommentTargetStatus, InstagramAccountStatus } from "@prisma/client";
+import {
+  CommentJobStatus,
+  CommentTargetStatus,
+  InstagramAccountStatus,
+} from "@prisma/client";
 import { Worker } from "bullmq";
 
 import { prisma } from "@/lib/db";
 import { decryptJson } from "@/lib/encryption";
 import { generateUniqueComment } from "@/lib/openai";
-import { postInstagramComment, type StoredInstagramSession } from "@/lib/instagram";
+import {
+  postInstagramComment,
+  type StoredInstagramSession,
+} from "@/lib/instagram";
 import { COMMENT_TARGET_QUEUE, redisConnection } from "@/lib/queue";
-import type { CommentTargetJobPayload } from "@/types/jobs";
+import type { CommentTargetJobPayload } from "@/@types/jobs";
 
 function sanitizeJsonValue(value: unknown): unknown {
   if (value === undefined) return undefined;
@@ -40,7 +47,9 @@ async function logTargetEvent(
       level,
       message,
       metadataJson:
-        sanitizedMetadata && typeof sanitizedMetadata === "object" ? sanitizedMetadata : undefined,
+        sanitizedMetadata && typeof sanitizedMetadata === "object"
+          ? sanitizedMetadata
+          : undefined,
     },
   });
 }
@@ -71,13 +80,21 @@ async function waitForJobControl(jobId: string, targetId: string) {
     }
     if (!job.isPaused) {
       if (loggedPaused) {
-        await logTargetEvent(targetId, "INFO", "Job resumed, continuing target execution");
+        await logTargetEvent(
+          targetId,
+          "INFO",
+          "Job resumed, continuing target execution",
+        );
       }
       return { action: "proceed" as const };
     }
     if (!loggedPaused) {
       loggedPaused = true;
-      await logTargetEvent(targetId, "WARN", "Job paused, waiting before continuing");
+      await logTargetEvent(
+        targetId,
+        "WARN",
+        "Job paused, waiting before continuing",
+      );
     }
     await sleep(2_000);
   }
@@ -92,18 +109,28 @@ async function refreshJobAggregate(jobId: string) {
 
   const [total, success, failed, running] = await Promise.all([
     prisma.commentJobTarget.count({ where: { jobId } }),
-    prisma.commentJobTarget.count({ where: { jobId, status: CommentTargetStatus.SUCCESS } }),
-    prisma.commentJobTarget.count({ where: { jobId, status: CommentTargetStatus.FAILED } }),
-    prisma.commentJobTarget.count({ where: { jobId, status: CommentTargetStatus.RUNNING } }),
+    prisma.commentJobTarget.count({
+      where: { jobId, status: CommentTargetStatus.SUCCESS },
+    }),
+    prisma.commentJobTarget.count({
+      where: { jobId, status: CommentTargetStatus.FAILED },
+    }),
+    prisma.commentJobTarget.count({
+      where: { jobId, status: CommentTargetStatus.RUNNING },
+    }),
   ]);
 
   let status: CommentJobStatus = CommentJobStatus.QUEUED;
-  if (jobControl.cancelRequested || jobControl.status === CommentJobStatus.CANCELED) {
+  if (
+    jobControl.cancelRequested ||
+    jobControl.status === CommentJobStatus.CANCELED
+  ) {
     status = CommentJobStatus.CANCELED;
   } else if (jobControl.isPaused) {
     status = CommentJobStatus.PAUSED;
   } else if (running > 0) status = CommentJobStatus.RUNNING;
-  else if (failed > 0 && success > 0 && success + failed === total) status = CommentJobStatus.PARTIAL;
+  else if (failed > 0 && success > 0 && success + failed === total)
+    status = CommentJobStatus.PARTIAL;
   else if (failed > 0 && failed === total) status = CommentJobStatus.FAILED;
   else if (success === total && total > 0) status = CommentJobStatus.COMPLETED;
 
@@ -126,10 +153,15 @@ async function refreshJobAggregate(jobId: string) {
 }
 
 async function runTarget(payload: CommentTargetJobPayload) {
-  await logTargetEvent(payload.targetId, "INFO", "Target execution queued in worker", {
-    jobId: payload.jobId,
-    accountId: payload.accountId,
-  });
+  await logTargetEvent(
+    payload.targetId,
+    "INFO",
+    "Target execution queued in worker",
+    {
+      jobId: payload.jobId,
+      accountId: payload.accountId,
+    },
+  );
 
   await prisma.commentJobTarget.update({
     where: { id: payload.targetId },
@@ -148,7 +180,11 @@ async function runTarget(payload: CommentTargetJobPayload) {
     });
 
     if (!target) {
-      await logTargetEvent(payload.targetId, "ERROR", "Target record not found");
+      await logTargetEvent(
+        payload.targetId,
+        "ERROR",
+        "Target record not found",
+      );
       throw new Error(`Target not found: ${payload.targetId}`);
     }
 
@@ -159,7 +195,9 @@ async function runTarget(payload: CommentTargetJobPayload) {
     ) {
       await logTargetEvent(target.id, "WARN", "Account not ready for posting", {
         accountStatus: target.account.status,
-        hasSession: Boolean(target.account.sessionEncrypted && target.account.sessionIv),
+        hasSession: Boolean(
+          target.account.sessionEncrypted && target.account.sessionIv,
+        ),
       });
       await prisma.commentJobTarget.update({
         where: { id: target.id },
@@ -176,7 +214,11 @@ async function runTarget(payload: CommentTargetJobPayload) {
 
     const controlBeforeWork = await waitForJobControl(target.jobId, target.id);
     if (controlBeforeWork.action === "cancel") {
-      await logTargetEvent(target.id, "WARN", "Skipping target because job was canceled");
+      await logTargetEvent(
+        target.id,
+        "WARN",
+        "Skipping target because job was canceled",
+      );
       await prisma.commentJobTarget.update({
         where: { id: target.id },
         data: {
@@ -216,31 +258,49 @@ async function runTarget(payload: CommentTargetJobPayload) {
 
     const cooldownMs = Math.max(0, target.account.minCooldownSec) * 1000;
     if (cooldownMs > 0 && target.account.lastUsedAt) {
-      const elapsedMs = Date.now() - new Date(target.account.lastUsedAt).getTime();
+      const elapsedMs =
+        Date.now() - new Date(target.account.lastUsedAt).getTime();
       const waitMs = Math.max(0, cooldownMs - elapsedMs);
       if (waitMs > 0) {
-        await logTargetEvent(target.id, "INFO", "Waiting for account cooldown", {
-          waitMs,
-          minCooldownSec: target.account.minCooldownSec,
-          lastUsedAt: target.account.lastUsedAt.toISOString(),
-        });
+        await logTargetEvent(
+          target.id,
+          "INFO",
+          "Waiting for account cooldown",
+          {
+            waitMs,
+            minCooldownSec: target.account.minCooldownSec,
+            lastUsedAt: target.account.lastUsedAt.toISOString(),
+          },
+        );
         await sleep(waitMs);
       }
     }
 
-    const jitterMs = randomInt(target.account.minDelayMs, target.account.maxDelayMs);
+    const jitterMs = randomInt(
+      target.account.minDelayMs,
+      target.account.maxDelayMs,
+    );
     if (jitterMs > 0) {
-      await logTargetEvent(target.id, "INFO", "Applying per-account jitter delay", {
-        jitterMs,
-        minDelayMs: target.account.minDelayMs,
-        maxDelayMs: target.account.maxDelayMs,
-      });
+      await logTargetEvent(
+        target.id,
+        "INFO",
+        "Applying per-account jitter delay",
+        {
+          jitterMs,
+          minDelayMs: target.account.minDelayMs,
+          maxDelayMs: target.account.maxDelayMs,
+        },
+      );
       await sleep(jitterMs);
     }
 
     const controlBeforePost = await waitForJobControl(target.jobId, target.id);
     if (controlBeforePost.action === "cancel") {
-      await logTargetEvent(target.id, "WARN", "Skipping post because job was canceled");
+      await logTargetEvent(
+        target.id,
+        "WARN",
+        "Skipping post because job was canceled",
+      );
       await prisma.commentJobTarget.update({
         where: { id: target.id },
         data: {
@@ -266,9 +326,14 @@ async function runTarget(payload: CommentTargetJobPayload) {
           finishedAt: new Date(),
         },
       });
-      await logTargetEvent(target.id, "INFO", "Dry run enabled, skipped Instagram posting", {
-        dryRun: true,
-      });
+      await logTargetEvent(
+        target.id,
+        "INFO",
+        "Dry run enabled, skipped Instagram posting",
+        {
+          dryRun: true,
+        },
+      );
       await refreshJobAggregate(payload.jobId);
       return;
     }
@@ -287,7 +352,10 @@ async function runTarget(payload: CommentTargetJobPayload) {
       if (/session expired|login|challenge|checkpoint/i.test(errorMessage)) {
         await prisma.instagramAccount.update({
           where: { id: target.accountId },
-          data: { status: InstagramAccountStatus.REQUIRES_RECONNECT, lastValidatedAt: new Date() },
+          data: {
+            status: InstagramAccountStatus.REQUIRES_RECONNECT,
+            lastValidatedAt: new Date(),
+          },
         });
       }
 
@@ -325,10 +393,16 @@ async function runTarget(payload: CommentTargetJobPayload) {
 
     await refreshJobAggregate(payload.jobId);
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Unhandled worker error";
-    await logTargetEvent(payload.targetId, "ERROR", "Unhandled target execution error", {
-      error: message,
-    }).catch(() => undefined);
+    const message =
+      error instanceof Error ? error.message : "Unhandled worker error";
+    await logTargetEvent(
+      payload.targetId,
+      "ERROR",
+      "Unhandled target execution error",
+      {
+        error: message,
+      },
+    ).catch(() => undefined);
     await prisma.commentJobTarget
       .update({
         where: { id: payload.targetId },

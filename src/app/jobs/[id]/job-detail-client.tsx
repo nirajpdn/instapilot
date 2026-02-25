@@ -38,9 +38,9 @@ type Props = {
 export function JobDetailClient({ jobId, initialJob, initialLogs }: Props) {
   const [job, setJob] = useState<JobRecord>(initialJob);
   const [logs, setLogs] = useState<ActivityLog[]>(initialLogs);
-  const [streamStatus, setStreamStatus] = useState<"connecting" | "live" | "offline">(
-    "connecting",
-  );
+  const [streamStatus, setStreamStatus] = useState<
+    "connecting" | "live" | "offline"
+  >("connecting");
   const [lastRefreshAt, setLastRefreshAt] = useState<string | null>(null);
   const [controlPending, setControlPending] = useState<string | null>(null);
 
@@ -66,7 +66,9 @@ export function JobDetailClient({ jobId, initialJob, initialLogs }: Props) {
   async function sendJobControl(action: "pause" | "resume" | "cancel") {
     setControlPending(action);
     try {
-      const response = await fetch(`/api/jobs/${jobId}/${action}`, { method: "POST" });
+      const response = await fetch(`/api/jobs/${jobId}/${action}`, {
+        method: "POST",
+      });
       const data = (await response.json()) as { error?: string };
       if (!response.ok) {
         throw new Error(data.error ?? `Failed to ${action} job`);
@@ -105,8 +107,10 @@ export function JobDetailClient({ jobId, initialJob, initialLogs }: Props) {
   }, [jobId]);
 
   const badgeClass = (status: string) => {
-    if (status === "SUCCESS" || status === "COMPLETED") return "badge badge-success";
-    if (status === "FAILED" || status === "CANCELED") return "badge badge-danger";
+    if (status === "SUCCESS" || status === "COMPLETED")
+      return "badge badge-success";
+    if (status === "FAILED" || status === "CANCELED")
+      return "badge badge-danger";
     if (status === "PAUSED" || status === "PARTIAL") return "badge badge-warn";
     return "badge badge-neutral";
   };
@@ -125,9 +129,15 @@ export function JobDetailClient({ jobId, initialJob, initialLogs }: Props) {
             </div>
             <div className="flex flex-wrap gap-2">
               <span className={badgeClass(job.status)}>{job.status}</span>
-              {job.dryRun ? <span className="badge badge-neutral">DRY RUN</span> : null}
-              {job.isPaused ? <span className="badge badge-warn">PAUSED</span> : null}
-              {job.cancelRequested ? <span className="badge badge-danger">CANCEL REQUESTED</span> : null}
+              {job.dryRun ? (
+                <span className="badge badge-neutral">DRY RUN</span>
+              ) : null}
+              {job.isPaused ? (
+                <span className="badge badge-warn">PAUSED</span>
+              ) : null}
+              {job.cancelRequested ? (
+                <span className="badge badge-danger">CANCEL REQUESTED</span>
+              ) : null}
             </div>
           </div>
         </div>
@@ -188,14 +198,22 @@ export function JobDetailClient({ jobId, initialJob, initialLogs }: Props) {
             <tbody>
               {job.targets.map((target) => (
                 <tr key={target.id} className="hover:bg-paper-50/70">
-                  <td className="font-medium text-ink-900">{target.account.username}</td>
+                  <td className="font-medium text-ink-900">
+                    {target.account.username}
+                  </td>
                   <td>
-                    <span className={badgeClass(target.status)}>{target.status}</span>
+                    <span className={badgeClass(target.status)}>
+                      {target.status}
+                    </span>
                   </td>
                   <td className="max-w-xl">
-                    <span className="line-clamp-3">{target.generatedComment ?? "-"}</span>
+                    <span className="line-clamp-3">
+                      {target.generatedComment ?? "-"}
+                    </span>
                   </td>
-                  <td className="max-w-xl text-red-700/90">{target.errorMessage ?? "-"}</td>
+                  <td className="max-w-xl text-red-700/90">
+                    {target.errorMessage ?? "-"}
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -225,28 +243,43 @@ export function JobDetailClient({ jobId, initialJob, initialLogs }: Props) {
               <tbody>
                 {logs.map((log) => (
                   <tr key={log.id} className="hover:bg-paper-50/70">
-                    <td className="whitespace-nowrap text-xs text-ink-500">{log.createdAt}</td>
-                    <td className="font-mono text-xs text-ink-600">{log.entityId}</td>
+                    <td className="whitespace-nowrap text-xs text-ink-500">
+                      {log.createdAt}
+                    </td>
+                    <td className="font-mono text-xs text-ink-600">
+                      {log.entityId}
+                    </td>
                     <td>
-                      <span className={badgeClass(log.level === "ERROR" ? "FAILED" : log.level === "WARN" ? "PAUSED" : "QUEUED")}>
+                      <span
+                        className={badgeClass(
+                          log.level === "ERROR"
+                            ? "FAILED"
+                            : log.level === "WARN"
+                              ? "PAUSED"
+                              : "QUEUED",
+                        )}
+                      >
                         {log.level}
                       </span>
                     </td>
                     <td className="max-w-sm">{log.message}</td>
                     <td className="max-w-xl">
                       <code className="block whitespace-pre-wrap rounded-lg bg-paper-100 px-2 py-1 text-xs text-ink-600">
-                        {log.metadataJson ? JSON.stringify(log.metadataJson) : "-"}
+                        {log.metadataJson
+                          ? JSON.stringify(log.metadataJson, null, 2)
+                          : "-"}
                       </code>
                       {typeof log.metadataJson === "object" &&
                       log.metadataJson !== null &&
                       "screenshotPath" in log.metadataJson &&
-                      typeof (log.metadataJson as { screenshotPath?: unknown }).screenshotPath ===
-                        "string" ? (
+                      typeof (log.metadataJson as { screenshotPath?: unknown })
+                        .screenshotPath === "string" ? (
                         <div className="mt-2 space-y-2">
                           <a
                             className="text-sm font-medium text-brand-700 hover:text-brand-600"
                             href={`/api/artifacts/screenshot?path=${encodeURIComponent(
-                              (log.metadataJson as { screenshotPath: string }).screenshotPath,
+                              (log.metadataJson as { screenshotPath: string })
+                                .screenshotPath,
                             )}`}
                             target="_blank"
                             rel="noreferrer"
@@ -255,7 +288,8 @@ export function JobDetailClient({ jobId, initialJob, initialLogs }: Props) {
                           </a>
                           <img
                             src={`/api/artifacts/screenshot?path=${encodeURIComponent(
-                              (log.metadataJson as { screenshotPath: string }).screenshotPath,
+                              (log.metadataJson as { screenshotPath: string })
+                                .screenshotPath,
                             )}`}
                             alt="Failure screenshot"
                             className="max-w-52 rounded-lg border border-paper-200 shadow-sm"
