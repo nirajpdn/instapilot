@@ -8,19 +8,39 @@ import { postInstagramComment, type StoredInstagramSession } from "@/lib/instagr
 import { COMMENT_TARGET_QUEUE, redisConnection } from "@/lib/queue";
 import type { CommentTargetJobPayload } from "@/types/jobs";
 
+function sanitizeJsonValue(value: unknown): unknown {
+  if (value === undefined) return undefined;
+  if (value === null) return null;
+  if (Array.isArray(value)) {
+    return value
+      .map((item) => sanitizeJsonValue(item))
+      .filter((item) => item !== undefined);
+  }
+  if (value instanceof Date) return value.toISOString();
+  if (typeof value === "object") {
+    const entries = Object.entries(value as Record<string, unknown>)
+      .map(([key, nested]) => [key, sanitizeJsonValue(nested)] as const)
+      .filter(([, nested]) => nested !== undefined);
+    return Object.fromEntries(entries);
+  }
+  return value;
+}
+
 async function logTargetEvent(
   targetId: string,
   level: "INFO" | "WARN" | "ERROR",
   message: string,
   metadata?: Record<string, unknown>,
 ) {
+  const sanitizedMetadata = metadata ? sanitizeJsonValue(metadata) : undefined;
   await prisma.activityLog.create({
     data: {
       entityType: "TARGET",
       entityId: targetId,
       level,
       message,
-      metadataJson: metadata,
+      metadataJson:
+        sanitizedMetadata && typeof sanitizedMetadata === "object" ? sanitizedMetadata : undefined,
     },
   });
 }
