@@ -28,13 +28,15 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Invalid password" }, { status: 401 });
     }
 
+    const requestUrl = new URL(request.url);
+    const isSecureRequest = requestUrl.protocol === "https:";
     const response = NextResponse.json({ ok: true });
     response.cookies.set({
       name: ADMIN_SESSION_COOKIE,
       value: createAdminSessionToken(),
       httpOnly: true,
       sameSite: "lax",
-      secure: process.env.NODE_ENV === "production",
+      secure: isSecureRequest,
       path: "/",
       maxAge: 7 * 24 * 60 * 60,
     });

@@ -2,7 +2,9 @@ import { NextResponse } from "next/server";
 
 import { ADMIN_SESSION_COOKIE } from "@/lib/admin-auth";
 
-export async function POST() {
+export async function POST(request: Request) {
+  const requestUrl = new URL(request.url);
+  const isSecureRequest = requestUrl.protocol === "https:";
   const response = NextResponse.json({ ok: true });
   response.cookies.set({
     name: ADMIN_SESSION_COOKIE,
@@ -11,7 +13,7 @@ export async function POST() {
     maxAge: 0,
     httpOnly: true,
     sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
+    secure: isSecureRequest,
   });
   return response;
 }

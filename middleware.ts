@@ -20,6 +20,14 @@ function fromBase64Url(input: string) {
   return Uint8Array.from(atob(padded), (c) => c.charCodeAt(0));
 }
 
+function toBase64Url(bytes: Uint8Array) {
+  let binary = "";
+  for (const byte of bytes) {
+    binary += String.fromCharCode(byte);
+  }
+  return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
+}
+
 async function verifyToken(token: string | undefined, secret: string | undefined) {
   if (!token || !secret) return false;
   const [body, signature] = token.split(".");
@@ -30,16 +38,12 @@ async function verifyToken(token: string | undefined, secret: string | undefined
     new TextEncoder().encode(secret),
     { name: "HMAC", hash: "SHA-256" },
     false,
-    ["verify"],
+    ["sign"],
   );
 
-  const ok = await crypto.subtle.verify(
-    "HMAC",
-    key,
-    fromBase64Url(signature),
-    new TextEncoder().encode(body),
-  );
-  if (!ok) return false;
+  const signed = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(body));
+  const expectedSignature = toBase64Url(new Uint8Array(signed));
+  if (signature !== expectedSignature) return false;
 
   try {
     const payloadText = new TextDecoder().decode(fromBase64Url(body));
