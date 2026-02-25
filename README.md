@@ -64,3 +64,13 @@ Fallback:
   - `Min Delay` / `Max Delay` (ms): randomized pre-post jitter
   - `Cooldown` (sec): minimum time between comments for that account
 - `/jobs/[id]` uses SSE (`/api/jobs/:id/events`) to auto-refresh job targets and logs.
+- `/jobs/[id]` includes job controls: `Pause`, `Resume`, `Cancel`.
+- `/commenter` supports `Dry run` mode (generates comments and logs, skips Instagram posting).
+- Failure screenshots in logs can be previewed inline and opened via `/api/artifacts/screenshot`.
+
+## After schema changes
+
+If you pull new code after changes to `prisma/schema.prisma`, run:
+
+- `npm run prisma:generate`
+- `npm run prisma:migrate`

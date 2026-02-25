@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 
 export default function CommenterPage() {
   const [postUrl, setPostUrl] = useState("");
+  const [dryRun, setDryRun] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -21,7 +22,7 @@ export default function CommenterPage() {
             const response = await fetch("/api/jobs/comment", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ postUrl }),
+              body: JSON.stringify({ postUrl, dryRun }),
             });
             const data = (await response.json()) as { id?: string; error?: string };
             if (!response.ok) {
@@ -44,6 +45,15 @@ export default function CommenterPage() {
           required
         />
         <div style={{ marginTop: 12 }}>
+          <label style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+            <input
+              type="checkbox"
+              checked={dryRun}
+              onChange={(e) => setDryRun(e.target.checked)}
+              style={{ width: "auto" }}
+            />
+            <span>Dry run (generate comments only, do not post to Instagram)</span>
+          </label>
           <button type="submit" disabled={isPending}>
             {isPending ? "Creating..." : "Run on all active accounts"}
           </button>

@@ -48,6 +48,9 @@ export default async function JobDetailPage({
         id: job.id,
         status: job.status,
         normalizedPostUrl: job.normalizedPostUrl,
+        dryRun: job.dryRun,
+        isPaused: job.isPaused,
+        cancelRequested: job.cancelRequested,
         targets: job.targets.map((target) => ({
           id: target.id,
           status: target.status,

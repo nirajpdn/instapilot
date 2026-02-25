@@ -16,9 +16,11 @@ enum InstagramAccountStatus {
 enum CommentJobStatus {
   QUEUED
   RUNNING
+  PAUSED
   COMPLETED
   FAILED
   PARTIAL
+  CANCELED
 }
 
 enum CommentTargetStatus {
@@ -52,6 +54,9 @@ model CommentJob {
   postUrl          String
   normalizedPostUrl String
   postType         String?
+  dryRun           Boolean           @default(false)
+  isPaused         Boolean           @default(false)
+  cancelRequested  Boolean           @default(false)
   status           CommentJobStatus  @default(QUEUED)
   totalTargets     Int               @default(0)
   completedTargets Int               @default(0)

@@ -5,7 +5,10 @@ import { normalizeInstagramPostUrl } from "@/lib/instagram";
 import { commentTargetQueue } from "@/lib/queue";
 import type { CommentTargetJobPayload } from "@/types/jobs";
 
-export async function createCommentJobForAllActiveAccounts(postUrl: string) {
+export async function createCommentJobForAllActiveAccounts(
+  postUrl: string,
+  options?: { dryRun?: boolean },
+) {
   const normalizedPostUrl = normalizeInstagramPostUrl(postUrl);
 
   const activeAccounts = await prisma.instagramAccount.findMany({
@@ -22,6 +25,7 @@ export async function createCommentJobForAllActiveAccounts(postUrl: string) {
     data: {
       postUrl,
       normalizedPostUrl,
+      dryRun: Boolean(options?.dryRun),
       status: CommentJobStatus.QUEUED,
       totalTargets: activeAccounts.length,
       targets: {

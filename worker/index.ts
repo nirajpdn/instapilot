@@ -36,7 +36,40 @@ function randomInt(min: number, max: number) {
   return Math.floor(Math.random() * (high - low + 1)) + low;
 }
 
+async function waitForJobControl(jobId: string, targetId: string) {
+  let loggedPaused = false;
+  while (true) {
+    const job = await prisma.commentJob.findUnique({
+      where: { id: jobId },
+      select: { id: true, isPaused: true, cancelRequested: true, status: true },
+    });
+    if (!job) {
+      return { action: "cancel" as const, reason: "Job not found" };
+    }
+    if (job.cancelRequested || job.status === CommentJobStatus.CANCELED) {
+      return { action: "cancel" as const, reason: "Job canceled" };
+    }
+    if (!job.isPaused) {
+      if (loggedPaused) {
+        await logTargetEvent(targetId, "INFO", "Job resumed, continuing target execution");
+      }
+      return { action: "proceed" as const };
+    }
+    if (!loggedPaused) {
+      loggedPaused = true;
+      await logTargetEvent(targetId, "WARN", "Job paused, waiting before continuing");
+    }
+    await sleep(2_000);
+  }
+}
+
 async function refreshJobAggregate(jobId: string) {
+  const jobControl = await prisma.commentJob.findUnique({
+    where: { id: jobId },
+    select: { cancelRequested: true, isPaused: true, status: true },
+  });
+  if (!jobControl) return;
+
   const [total, success, failed, running] = await Promise.all([
     prisma.commentJobTarget.count({ where: { jobId } }),
     prisma.commentJobTarget.count({ where: { jobId, status: CommentTargetStatus.SUCCESS } }),
@@ -45,7 +78,11 @@ async function refreshJobAggregate(jobId: string) {
   ]);
 
   let status: CommentJobStatus = CommentJobStatus.QUEUED;
-  if (running > 0) status = CommentJobStatus.RUNNING;
+  if (jobControl.cancelRequested || jobControl.status === CommentJobStatus.CANCELED) {
+    status = CommentJobStatus.CANCELED;
+  } else if (jobControl.isPaused) {
+    status = CommentJobStatus.PAUSED;
+  } else if (running > 0) status = CommentJobStatus.RUNNING;
   else if (failed > 0 && success > 0 && success + failed === total) status = CommentJobStatus.PARTIAL;
   else if (failed > 0 && failed === total) status = CommentJobStatus.FAILED;
   else if (success === total && total > 0) status = CommentJobStatus.COMPLETED;
@@ -60,7 +97,8 @@ async function refreshJobAggregate(jobId: string) {
       completedAt:
         status === CommentJobStatus.COMPLETED ||
         status === CommentJobStatus.FAILED ||
-        status === CommentJobStatus.PARTIAL
+        status === CommentJobStatus.PARTIAL ||
+        status === CommentJobStatus.CANCELED
           ? new Date()
           : null,
     },
@@ -116,6 +154,22 @@ async function runTarget(payload: CommentTargetJobPayload) {
       return;
     }
 
+    const controlBeforeWork = await waitForJobControl(target.jobId, target.id);
+    if (controlBeforeWork.action === "cancel") {
+      await logTargetEvent(target.id, "WARN", "Skipping target because job was canceled");
+      await prisma.commentJobTarget.update({
+        where: { id: target.id },
+        data: {
+          status: CommentTargetStatus.SKIPPED,
+          errorCode: "JOB_CANCELED",
+          errorMessage: controlBeforeWork.reason,
+          finishedAt: new Date(),
+        },
+      });
+      await refreshJobAggregate(payload.jobId);
+      return;
+    }
+
     const session = decryptJson<StoredInstagramSession>({
       encrypted: target.account.sessionEncrypted,
       iv: target.account.sessionIv,
@@ -162,6 +216,41 @@ async function runTarget(payload: CommentTargetJobPayload) {
         maxDelayMs: target.account.maxDelayMs,
       });
       await sleep(jitterMs);
+    }
+
+    const controlBeforePost = await waitForJobControl(target.jobId, target.id);
+    if (controlBeforePost.action === "cancel") {
+      await logTargetEvent(target.id, "WARN", "Skipping post because job was canceled");
+      await prisma.commentJobTarget.update({
+        where: { id: target.id },
+        data: {
+          status: CommentTargetStatus.SKIPPED,
+          generatedComment,
+          errorCode: "JOB_CANCELED",
+          errorMessage: controlBeforePost.reason,
+          finishedAt: new Date(),
+        },
+      });
+      await refreshJobAggregate(payload.jobId);
+      return;
+    }
+
+    if (target.job.dryRun) {
+      await prisma.commentJobTarget.update({
+        where: { id: target.id },
+        data: {
+          status: CommentTargetStatus.SUCCESS,
+          generatedComment,
+          errorCode: null,
+          errorMessage: null,
+          finishedAt: new Date(),
+        },
+      });
+      await logTargetEvent(target.id, "INFO", "Dry run enabled, skipped Instagram posting", {
+        dryRun: true,
+      });
+      await refreshJobAggregate(payload.jobId);
+      return;
     }
 
     const result = await postInstagramComment(session, {
