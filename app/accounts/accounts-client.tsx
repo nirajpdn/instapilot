@@ -8,6 +8,9 @@ type AccountRow = {
   username: string;
   displayName: string | null;
   status: string;
+  minDelayMs: number;
+  maxDelayMs: number;
+  minCooldownSec: number;
   lastValidatedAt: string | null;
   createdAt: string;
 };
@@ -27,7 +30,36 @@ export function AccountsClient({ initialAccounts }: Props) {
   const [feedback, setFeedback] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [settingsDrafts, setSettingsDrafts] = useState<
+    Record<string, { minDelayMs: number; maxDelayMs: number; minCooldownSec: number }>
+  >(() =>
+    Object.fromEntries(
+      initialAccounts.map((account) => [
+        account.id,
+        {
+          minDelayMs: account.minDelayMs,
+          maxDelayMs: account.maxDelayMs,
+          minCooldownSec: account.minCooldownSec,
+        },
+      ]),
+    ),
+  );
   const [isPending, startTransition] = useTransition();
+
+  useEffect(() => {
+    setSettingsDrafts(
+      Object.fromEntries(
+        initialAccounts.map((account) => [
+          account.id,
+          {
+            minDelayMs: account.minDelayMs,
+            maxDelayMs: account.maxDelayMs,
+            minCooldownSec: account.minCooldownSec,
+          },
+        ]),
+      ),
+    );
+  }, [initialAccounts]);
 
   useEffect(() => {
     if (!connectSessionId) {
@@ -267,13 +299,14 @@ export function AccountsClient({ initialAccounts }: Props) {
             <th>Username</th>
             <th>Status</th>
             <th>Last Validated</th>
+            <th>Throttle</th>
             <th>Actions</th>
           </tr>
         </thead>
         <tbody>
           {initialAccounts.length === 0 ? (
             <tr>
-              <td colSpan={4} className="muted">
+              <td colSpan={5} className="muted">
                 No accounts connected yet.
               </td>
             </tr>
@@ -284,7 +317,119 @@ export function AccountsClient({ initialAccounts }: Props) {
                 <td>{account.status}</td>
                 <td>{account.lastValidatedAt ?? "-"}</td>
                 <td>
+                  <div style={{ display: "grid", gap: 6, minWidth: 220 }}>
+                    <label style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                      <span style={{ width: 72 }} className="muted">
+                        Min Delay
+                      </span>
+                      <input
+                        type="number"
+                        min={0}
+                        step={100}
+                        value={settingsDrafts[account.id]?.minDelayMs ?? account.minDelayMs}
+                        onChange={(e) =>
+                          setSettingsDrafts((prev) => ({
+                            ...prev,
+                            [account.id]: {
+                              ...(prev[account.id] ?? {
+                                minDelayMs: account.minDelayMs,
+                                maxDelayMs: account.maxDelayMs,
+                                minCooldownSec: account.minCooldownSec,
+                              }),
+                              minDelayMs: Number(e.target.value),
+                            },
+                          }))
+                        }
+                        style={{ width: 110 }}
+                      />
+                    </label>
+                    <label style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                      <span style={{ width: 72 }} className="muted">
+                        Max Delay
+                      </span>
+                      <input
+                        type="number"
+                        min={0}
+                        step={100}
+                        value={settingsDrafts[account.id]?.maxDelayMs ?? account.maxDelayMs}
+                        onChange={(e) =>
+                          setSettingsDrafts((prev) => ({
+                            ...prev,
+                            [account.id]: {
+                              ...(prev[account.id] ?? {
+                                minDelayMs: account.minDelayMs,
+                                maxDelayMs: account.maxDelayMs,
+                                minCooldownSec: account.minCooldownSec,
+                              }),
+                              maxDelayMs: Number(e.target.value),
+                            },
+                          }))
+                        }
+                        style={{ width: 110 }}
+                      />
+                    </label>
+                    <label style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                      <span style={{ width: 72 }} className="muted">
+                        Cooldown
+                      </span>
+                      <input
+                        type="number"
+                        min={0}
+                        step={1}
+                        value={settingsDrafts[account.id]?.minCooldownSec ?? account.minCooldownSec}
+                        onChange={(e) =>
+                          setSettingsDrafts((prev) => ({
+                            ...prev,
+                            [account.id]: {
+                              ...(prev[account.id] ?? {
+                                minDelayMs: account.minDelayMs,
+                                maxDelayMs: account.maxDelayMs,
+                                minCooldownSec: account.minCooldownSec,
+                              }),
+                              minCooldownSec: Number(e.target.value),
+                            },
+                          }))
+                        }
+                        style={{ width: 110 }}
+                      />
+                    </label>
+                  </div>
+                </td>
+                <td>
                   <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                    <button
+                      type="button"
+                      disabled={busyId === account.id || isPending}
+                      style={{ background: "#1d4ed8" }}
+                      onClick={() => {
+                        const draft = settingsDrafts[account.id];
+                        if (!draft) return;
+                        setBusyId(account.id);
+                        setError(null);
+                        setFeedback(null);
+                        startTransition(async () => {
+                          try {
+                            const response = await fetch(`/api/accounts/${account.id}/settings`, {
+                              method: "POST",
+                              headers: { "Content-Type": "application/json" },
+                              body: JSON.stringify(draft),
+                            });
+                            const data = (await response.json()) as { error?: string };
+                            if (!response.ok) {
+                              throw new Error(data.error ?? "Failed to save settings");
+                            }
+                            setFeedback(`Saved throttle settings for @${account.username}`);
+                            router.refresh();
+                          } catch (e) {
+                            setError(e instanceof Error ? e.message : "Failed to save settings");
+                          } finally {
+                            setBusyId(null);
+                          }
+                        });
+                      }}
+                    >
+                      Save Limits
+                    </button>
                     <button
                       type="button"
                       disabled={busyId === account.id || isPending}

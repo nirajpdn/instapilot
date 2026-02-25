@@ -37,6 +37,9 @@ model InstagramAccount {
   sessionEncrypted String?
   sessionIv        String?
   sessionVersion   Int                    @default(1)
+  minDelayMs       Int                    @default(1200)
+  maxDelayMs       Int                    @default(2600)
+  minCooldownSec   Int                    @default(0)
   lastValidatedAt  DateTime?
   lastUsedAt       DateTime?
   createdAt        DateTime               @default(now())

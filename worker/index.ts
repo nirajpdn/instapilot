@@ -25,6 +25,17 @@ async function logTargetEvent(
   });
 }
 
+async function sleep(ms: number) {
+  if (ms <= 0) return;
+  await new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function randomInt(min: number, max: number) {
+  const low = Math.max(0, Math.min(min, max));
+  const high = Math.max(0, Math.max(min, max));
+  return Math.floor(Math.random() * (high - low + 1)) + low;
+}
+
 async function refreshJobAggregate(jobId: string) {
   const [total, success, failed, running] = await Promise.all([
     prisma.commentJobTarget.count({ where: { jobId } }),
@@ -128,6 +139,30 @@ async function runTarget(payload: CommentTargetJobPayload) {
     await logTargetEvent(target.id, "INFO", "Generated unique comment", {
       length: generatedComment.length,
     });
+
+    const cooldownMs = Math.max(0, target.account.minCooldownSec) * 1000;
+    if (cooldownMs > 0 && target.account.lastUsedAt) {
+      const elapsedMs = Date.now() - new Date(target.account.lastUsedAt).getTime();
+      const waitMs = Math.max(0, cooldownMs - elapsedMs);
+      if (waitMs > 0) {
+        await logTargetEvent(target.id, "INFO", "Waiting for account cooldown", {
+          waitMs,
+          minCooldownSec: target.account.minCooldownSec,
+          lastUsedAt: target.account.lastUsedAt.toISOString(),
+        });
+        await sleep(waitMs);
+      }
+    }
+
+    const jitterMs = randomInt(target.account.minDelayMs, target.account.maxDelayMs);
+    if (jitterMs > 0) {
+      await logTargetEvent(target.id, "INFO", "Applying per-account jitter delay", {
+        jitterMs,
+        minDelayMs: target.account.minDelayMs,
+        maxDelayMs: target.account.maxDelayMs,
+      });
+      await sleep(jitterMs);
+    }
 
     const result = await postInstagramComment(session, {
       postUrl: target.job.normalizedPostUrl,

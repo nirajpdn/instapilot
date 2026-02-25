@@ -60,3 +60,6 @@ Fallback:
 - Instagram UI can change frequently; selectors may need updates.
 - Failure screenshots are saved under `artifacts/screenshots/` and referenced in job target logs.
 - Dashboard and APIs are protected by admin login at `/login`.
+- Each account has configurable throttle settings in `/accounts`:
+  - `Min Delay` / `Max Delay` (ms): randomized pre-post jitter
+  - `Cooldown` (sec): minimum time between comments for that account
