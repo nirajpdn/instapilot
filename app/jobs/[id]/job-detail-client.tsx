@@ -104,22 +104,38 @@ export function JobDetailClient({ jobId, initialJob, initialLogs }: Props) {
     };
   }, [jobId]);
 
+  const badgeClass = (status: string) => {
+    if (status === "SUCCESS" || status === "COMPLETED") return "badge badge-success";
+    if (status === "FAILED" || status === "CANCELED") return "badge badge-danger";
+    if (status === "PAUSED" || status === "PARTIAL") return "badge badge-warn";
+    return "badge badge-neutral";
+  };
+
   return (
     <>
-      <div className="card">
-        <h1>Job {job.id}</h1>
-        <p className="muted">
-          {job.status}
-          {job.dryRun ? " • DRY RUN" : ""}
-          {job.isPaused ? " • paused" : ""}
-          {job.cancelRequested ? " • cancel requested" : ""}
-          {" • "}
-          {job.normalizedPostUrl}
-        </p>
-        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 10 }}>
+      <section className="panel">
+        <div className="mb-4 flex flex-col gap-3">
+          <div className="flex flex-col gap-2 lg:flex-row lg:items-start lg:justify-between">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-brand-700">
+                Job Detail
+              </p>
+              <h1 className="mt-1">Job {job.id}</h1>
+              <p className="muted mt-2 break-all">{job.normalizedPostUrl}</p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <span className={badgeClass(job.status)}>{job.status}</span>
+              {job.dryRun ? <span className="badge badge-neutral">DRY RUN</span> : null}
+              {job.isPaused ? <span className="badge badge-warn">PAUSED</span> : null}
+              {job.cancelRequested ? <span className="badge badge-danger">CANCEL REQUESTED</span> : null}
+            </div>
+          </div>
+        </div>
+
+        <div className="mb-3 flex flex-wrap gap-2">
           <button
             type="button"
-            style={{ background: "#92400e" }}
+            className="btn-warn"
             disabled={controlPending !== null || job.status === "CANCELED"}
             onClick={() => void sendJobControl("pause")}
           >
@@ -127,7 +143,7 @@ export function JobDetailClient({ jobId, initialJob, initialLogs }: Props) {
           </button>
           <button
             type="button"
-            style={{ background: "#1d4ed8" }}
+            className="btn-brand"
             disabled={controlPending !== null || job.status === "CANCELED"}
             onClick={() => void sendJobControl("resume")}
           >
@@ -135,7 +151,7 @@ export function JobDetailClient({ jobId, initialJob, initialLogs }: Props) {
           </button>
           <button
             type="button"
-            style={{ background: "#b42318" }}
+            className="btn-danger"
             disabled={controlPending !== null || job.status === "CANCELED"}
             onClick={() => void sendJobControl("cancel")}
           >
@@ -143,14 +159,14 @@ export function JobDetailClient({ jobId, initialJob, initialLogs }: Props) {
           </button>
           <button
             type="button"
-            style={{ background: "#374151" }}
+            className="btn-secondary"
             disabled={controlPending !== null}
             onClick={() => void refreshData()}
           >
             Refresh Now
           </button>
         </div>
-        <p className="muted">
+        <p className="muted mb-4">
           Live updates: <code>{streamStatus}</code>
           {lastRefreshAt ? (
             <>
@@ -159,92 +175,101 @@ export function JobDetailClient({ jobId, initialJob, initialLogs }: Props) {
             </>
           ) : null}
         </p>
-        <table className="table">
-          <thead>
-            <tr>
-              <th>Account</th>
-              <th>Status</th>
-              <th>Generated Comment</th>
-              <th>Error</th>
-            </tr>
-          </thead>
-          <tbody>
-            {job.targets.map((target) => (
-              <tr key={target.id}>
-                <td>{target.account.username}</td>
-                <td>{target.status}</td>
-                <td>{target.generatedComment ?? "-"}</td>
-                <td>{target.errorMessage ?? "-"}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      <div className="card">
-        <h2>Target Logs</h2>
-        {logs.length === 0 ? (
-          <p className="muted">No logs yet.</p>
-        ) : (
-          <table className="table">
+        <div className="table-wrap">
+          <table className="table-base">
             <thead>
               <tr>
-                <th>Time</th>
-                <th>Target</th>
-                <th>Level</th>
-                <th>Message</th>
-                <th>Metadata</th>
+                <th>Account</th>
+                <th>Status</th>
+                <th>Generated Comment</th>
+                <th>Error</th>
               </tr>
             </thead>
             <tbody>
-              {logs.map((log) => (
-                <tr key={log.id}>
-                  <td>{log.createdAt}</td>
-                  <td>{log.entityId}</td>
-                  <td>{log.level}</td>
-                  <td>{log.message}</td>
+              {job.targets.map((target) => (
+                <tr key={target.id} className="hover:bg-paper-50/70">
+                  <td className="font-medium text-ink-900">{target.account.username}</td>
                   <td>
-                    <code style={{ whiteSpace: "pre-wrap", fontSize: 12 }}>
-                      {log.metadataJson ? JSON.stringify(log.metadataJson) : "-"}
-                    </code>
-                    {typeof log.metadataJson === "object" &&
-                    log.metadataJson !== null &&
-                    "screenshotPath" in log.metadataJson &&
-                    typeof (log.metadataJson as { screenshotPath?: unknown }).screenshotPath ===
-                      "string" ? (
-                      <div style={{ marginTop: 6 }}>
-                        <a
-                          href={`/api/artifacts/screenshot?path=${encodeURIComponent(
-                            (log.metadataJson as { screenshotPath: string }).screenshotPath,
-                          )}`}
-                          target="_blank"
-                          rel="noreferrer"
-                        >
-                          View screenshot
-                        </a>
-                        <div style={{ marginTop: 6 }}>
+                    <span className={badgeClass(target.status)}>{target.status}</span>
+                  </td>
+                  <td className="max-w-xl">
+                    <span className="line-clamp-3">{target.generatedComment ?? "-"}</span>
+                  </td>
+                  <td className="max-w-xl text-red-700/90">{target.errorMessage ?? "-"}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section className="panel">
+        <div className="mb-4 flex items-center justify-between gap-3">
+          <h2>Target Logs</h2>
+          <span className="badge badge-neutral">{logs.length} rows</span>
+        </div>
+        {logs.length === 0 ? (
+          <p className="muted">No logs yet.</p>
+        ) : (
+          <div className="table-wrap">
+            <table className="table-base">
+              <thead>
+                <tr>
+                  <th>Time</th>
+                  <th>Target</th>
+                  <th>Level</th>
+                  <th>Message</th>
+                  <th>Metadata</th>
+                </tr>
+              </thead>
+              <tbody>
+                {logs.map((log) => (
+                  <tr key={log.id} className="hover:bg-paper-50/70">
+                    <td className="whitespace-nowrap text-xs text-ink-500">{log.createdAt}</td>
+                    <td className="font-mono text-xs text-ink-600">{log.entityId}</td>
+                    <td>
+                      <span className={badgeClass(log.level === "ERROR" ? "FAILED" : log.level === "WARN" ? "PAUSED" : "QUEUED")}>
+                        {log.level}
+                      </span>
+                    </td>
+                    <td className="max-w-sm">{log.message}</td>
+                    <td className="max-w-xl">
+                      <code className="block whitespace-pre-wrap rounded-lg bg-paper-100 px-2 py-1 text-xs text-ink-600">
+                        {log.metadataJson ? JSON.stringify(log.metadataJson) : "-"}
+                      </code>
+                      {typeof log.metadataJson === "object" &&
+                      log.metadataJson !== null &&
+                      "screenshotPath" in log.metadataJson &&
+                      typeof (log.metadataJson as { screenshotPath?: unknown }).screenshotPath ===
+                        "string" ? (
+                        <div className="mt-2 space-y-2">
+                          <a
+                            className="text-sm font-medium text-brand-700 hover:text-brand-600"
+                            href={`/api/artifacts/screenshot?path=${encodeURIComponent(
+                              (log.metadataJson as { screenshotPath: string }).screenshotPath,
+                            )}`}
+                            target="_blank"
+                            rel="noreferrer"
+                          >
+                            View screenshot
+                          </a>
                           <img
                             src={`/api/artifacts/screenshot?path=${encodeURIComponent(
                               (log.metadataJson as { screenshotPath: string }).screenshotPath,
                             )}`}
                             alt="Failure screenshot"
-                            style={{
-                              width: 160,
-                              height: "auto",
-                              border: "1px solid #e5e7eb",
-                              borderRadius: 6,
-                            }}
+                            className="max-w-52 rounded-lg border border-paper-200 shadow-sm"
                           />
                         </div>
-                      </div>
-                    ) : null}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                      ) : null}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
-      </div>
+      </section>
     </>
   );
 }

@@ -10,7 +10,7 @@ export function LogoutButton() {
   return (
     <button
       type="button"
-      style={{ background: "#6b7280" }}
+      className="btn-secondary"
       disabled={isPending}
       onClick={() => {
         startTransition(async () => {

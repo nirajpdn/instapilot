@@ -18,17 +18,36 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
-        <div className="container">
-          <nav className="nav">
-            <Link href="/">Overview</Link>
-            <Link href="/accounts">Accounts</Link>
-            <Link href="/commenter">Commenter</Link>
-            <Link href="/jobs">Jobs</Link>
-            <div style={{ marginLeft: "auto" }}>
-              <LogoutButton />
+        <div className="page-shell">
+          <header className="mb-6">
+            <div className="panel flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-brand-700">
+                  Instagram Comment Manager
+                </p>
+                <p className="mt-1 text-sm text-ink-500">
+                  Multi-account sessions, LLM comments, job controls, and live
+                  execution logs.
+                </p>
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                <Link href="/" className="hover:text-brand-600">
+                  Overview
+                </Link>
+                <Link href="/accounts" className="hover:text-brand-600">
+                  Accounts
+                </Link>
+                <Link href="/commenter" className="hover:text-brand-600">
+                  Commenter
+                </Link>
+                <Link href="/jobs" className="hover:text-brand-600">
+                  Jobs
+                </Link>
+                <LogoutButton />
+              </div>
             </div>
-          </nav>
-          {children}
+          </header>
+          <main className="space-y-5">{children}</main>
         </div>
       </body>
     </html>

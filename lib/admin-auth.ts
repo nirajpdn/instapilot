@@ -34,7 +34,10 @@ export function verifyAdminPassword(password: string) {
 }
 
 function sign(data: string) {
-  return crypto.createHmac("sha256", getSigningSecret()).update(data).digest("base64url");
+  return crypto
+    .createHmac("sha256", getSigningSecret())
+    .update(data)
+    .digest("base64url");
 }
 
 export function createAdminSessionToken() {
@@ -42,7 +45,9 @@ export function createAdminSessionToken() {
     sub: "admin",
     exp: Date.now() + SESSION_TTL_MS,
   };
-  const body = Buffer.from(JSON.stringify(payload), "utf8").toString("base64url");
+  const body = Buffer.from(JSON.stringify(payload), "utf8").toString(
+    "base64url",
+  );
   const signature = sign(body);
   return `${body}.${signature}`;
 }
@@ -63,7 +68,9 @@ export function verifyAdminSessionToken(token: string | undefined | null) {
   }
 
   try {
-    const payload = JSON.parse(Buffer.from(body, "base64url").toString("utf8")) as SessionPayload;
+    const payload = JSON.parse(
+      Buffer.from(body, "base64url").toString("utf8"),
+    ) as SessionPayload;
     if (payload.sub !== "admin" || typeof payload.exp !== "number") {
       return { valid: false as const, reason: "payload" as const };
     }

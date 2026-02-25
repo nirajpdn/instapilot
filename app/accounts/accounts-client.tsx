@@ -107,30 +107,32 @@ export function AccountsClient({ initialAccounts }: Props) {
   }
 
   return (
-    <div className="card">
-      <h1>Accounts</h1>
-      <p className="muted">
-        Connect via in-app browser login or paste Playwright <code>storageState</code> JSON as a
-        fallback.
-      </p>
+    <section className="space-y-5">
+      <div className="panel">
+        <div className="mb-5 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-brand-700">
+              Accounts
+            </p>
+            <h1 className="mt-1">Instagram Account Sessions</h1>
+            <p className="muted mt-2">
+              Connect via in-app browser login or paste Playwright <code>storageState</code> JSON
+              as a fallback.
+            </p>
+          </div>
+          <span className="badge badge-neutral">{initialAccounts.length} accounts</span>
+        </div>
 
-      <div
-        style={{
-          border: "1px solid #e5e7eb",
-          borderRadius: 10,
-          padding: 12,
-          marginBottom: 16,
-          background: "#fafafa",
-        }}
-      >
-        <h2 style={{ marginTop: 0, marginBottom: 8, fontSize: 16 }}>Browser Login Flow</h2>
-        <p className="muted" style={{ marginTop: 0 }}>
+        <div className="rounded-2xl border border-paper-200 bg-paper-50/70 p-4">
+          <h2 className="text-base">Browser Login Flow</h2>
+          <p className="muted mt-2">
           Starts a local Playwright browser window from the backend. Log into Instagram there, then
           click complete below.
-        </p>
-        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+          </p>
+          <div className="mt-4 flex flex-wrap items-center gap-2">
           <button
             type="button"
+            className="btn-brand"
             disabled={isPending || Boolean(connectSessionId)}
             onClick={() => {
               setError(null);
@@ -158,6 +160,7 @@ export function AccountsClient({ initialAccounts }: Props) {
           </button>
           <button
             type="button"
+            className="btn-primary"
             disabled={isPending || !connectSessionId || !username.trim()}
             onClick={() => {
               setError(null);
@@ -199,7 +202,7 @@ export function AccountsClient({ initialAccounts }: Props) {
           </button>
           <button
             type="button"
-            style={{ background: "#6b7280" }}
+            className="btn-secondary"
             disabled={isPending || !connectSessionId}
             onClick={() => {
               if (!connectSessionId) return;
@@ -226,9 +229,9 @@ export function AccountsClient({ initialAccounts }: Props) {
           >
             Cancel Browser Login
           </button>
-        </div>
+          </div>
         {connectSessionId ? (
-          <p className="muted" style={{ marginBottom: 0 }}>
+          <div className="mt-4 rounded-xl border border-brand-100 bg-brand-50/60 px-3 py-2 text-sm text-ink-700">
             Session: <code>{connectSessionId}</code> • State: <code>{connectSessionState ?? "-"}</code>
             {connectSessionUrl ? (
               <>
@@ -236,11 +239,12 @@ export function AccountsClient({ initialAccounts }: Props) {
                 • URL: <code>{connectSessionUrl}</code>
               </>
             ) : null}
-          </p>
+          </div>
         ) : null}
-      </div>
+        </div>
 
-      <form
+        <form
+        className="mt-5 rounded-2xl border border-paper-200 bg-white p-4"
         onSubmit={(event) => {
           event.preventDefault();
           setError(null);
@@ -272,8 +276,8 @@ export function AccountsClient({ initialAccounts }: Props) {
           });
         }}
       >
-        <h2 style={{ marginTop: 0, fontSize: 16 }}>Paste StorageState (Fallback)</h2>
-        <div style={{ display: "grid", gap: 10 }}>
+        <h2 className="text-base">Paste StorageState (Fallback)</h2>
+        <div className="mt-4 grid-form">
           <div>
             <label htmlFor="username">Instagram username</label>
             <input
@@ -301,56 +305,80 @@ export function AccountsClient({ initialAccounts }: Props) {
               onChange={(e) => setStorageState(e.target.value)}
               rows={8}
               placeholder='{"cookies":[...],"origins":[]}'
-              style={{
-                width: "100%",
-                padding: "10px 12px",
-                border: "1px solid #cfd5de",
-                borderRadius: 8,
-                resize: "vertical",
-              }}
+              className="min-h-44 resize-y"
               required
             />
           </div>
           <div>
-            <button type="submit" disabled={isPending}>
+            <button type="submit" className="btn-primary" disabled={isPending}>
               {isPending ? "Saving..." : "Save Account Session"}
             </button>
           </div>
         </div>
       </form>
 
-      {feedback ? <p>{feedback}</p> : null}
-      {error ? <p style={{ color: "#b42318" }}>{error}</p> : null}
+        {feedback ? (
+          <p className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
+            {feedback}
+          </p>
+        ) : null}
+        {error ? (
+          <p className="mt-4 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+            {error}
+          </p>
+        ) : null}
+      </div>
 
-      <table className="table" style={{ marginTop: 16 }}>
-        <thead>
-          <tr>
-            <th>Username</th>
-            <th>Status</th>
-            <th>Last Validated</th>
-            <th>Throttle</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {initialAccounts.length === 0 ? (
-            <tr>
-              <td colSpan={5} className="muted">
-                No accounts connected yet.
-              </td>
-            </tr>
-          ) : (
-            initialAccounts.map((account) => (
-              <tr key={account.id}>
-                <td>{account.username}</td>
-                <td>{account.status}</td>
-                <td>{account.lastValidatedAt ?? "-"}</td>
-                <td>
-                  <div style={{ display: "grid", gap: 6, minWidth: 220 }}>
-                    <label style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                      <span style={{ width: 72 }} className="muted">
-                        Min Delay
+      <div className="panel">
+        <div className="mb-4 flex items-center justify-between gap-3">
+          <h2>Connected Accounts</h2>
+          <span className="badge badge-neutral">Throttle + session controls</span>
+        </div>
+        <div className="table-wrap">
+          <table className="table-base">
+            <thead>
+              <tr>
+                <th>Username</th>
+                <th>Status</th>
+                <th>Last Validated</th>
+                <th>Throttle</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {initialAccounts.length === 0 ? (
+                <tr>
+                  <td colSpan={5} className="!py-8 text-center text-sm text-ink-500">
+                    No accounts connected yet.
+                  </td>
+                </tr>
+              ) : (
+                initialAccounts.map((account) => (
+                  <tr key={account.id} className="hover:bg-paper-50/70">
+                    <td>
+                      <div className="font-medium text-ink-900">@{account.username}</div>
+                      {account.displayName ? (
+                        <div className="text-xs text-ink-500">{account.displayName}</div>
+                      ) : null}
+                    </td>
+                    <td>
+                      <span
+                        className={
+                          account.status === "ACTIVE"
+                            ? "badge badge-success"
+                            : account.status === "REQUIRES_RECONNECT"
+                              ? "badge badge-warn"
+                              : "badge badge-neutral"
+                        }
+                      >
+                        {account.status}
                       </span>
+                    </td>
+                    <td className="text-xs text-ink-500">{account.lastValidatedAt ?? "-"}</td>
+                    <td>
+                      <div className="grid min-w-56 gap-2">
+                        <label className="mb-0 flex items-center gap-2">
+                          <span className="w-20 text-xs font-medium text-ink-500">Min Delay</span>
                       <input
                         type="number"
                         min={0}
@@ -369,13 +397,11 @@ export function AccountsClient({ initialAccounts }: Props) {
                             },
                           }))
                         }
-                        style={{ width: 110 }}
+                        className="w-28"
                       />
                     </label>
-                    <label style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                      <span style={{ width: 72 }} className="muted">
-                        Max Delay
-                      </span>
+                        <label className="mb-0 flex items-center gap-2">
+                          <span className="w-20 text-xs font-medium text-ink-500">Max Delay</span>
                       <input
                         type="number"
                         min={0}
@@ -394,13 +420,11 @@ export function AccountsClient({ initialAccounts }: Props) {
                             },
                           }))
                         }
-                        style={{ width: 110 }}
+                        className="w-28"
                       />
                     </label>
-                    <label style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                      <span style={{ width: 72 }} className="muted">
-                        Cooldown
-                      </span>
+                        <label className="mb-0 flex items-center gap-2">
+                          <span className="w-20 text-xs font-medium text-ink-500">Cooldown</span>
                       <input
                         type="number"
                         min={0}
@@ -419,17 +443,17 @@ export function AccountsClient({ initialAccounts }: Props) {
                             },
                           }))
                         }
-                        style={{ width: 110 }}
+                        className="w-28"
                       />
                     </label>
                   </div>
                 </td>
                 <td>
-                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                  <div className="flex flex-wrap gap-2">
                     <button
                       type="button"
                       disabled={busyId === account.id || isPending}
-                      style={{ background: "#1d4ed8" }}
+                      className="btn-brand"
                       onClick={() => {
                         const draft = settingsDrafts[account.id];
                         if (!draft) return;
@@ -462,6 +486,7 @@ export function AccountsClient({ initialAccounts }: Props) {
                     <button
                       type="button"
                       disabled={busyId === account.id || isPending}
+                      className="btn-secondary"
                       onClick={() => {
                         setBusyId(account.id);
                         startTransition(async () => {
@@ -486,7 +511,7 @@ export function AccountsClient({ initialAccounts }: Props) {
                     <button
                       type="button"
                       disabled={busyId === account.id || isPending}
-                      style={{ background: "#b42318" }}
+                      className="btn-danger"
                       onClick={() => {
                         setBusyId(account.id);
                         startTransition(async () => {
@@ -506,11 +531,13 @@ export function AccountsClient({ initialAccounts }: Props) {
                     </button>
                   </div>
                 </td>
-              </tr>
-            ))
-          )}
-        </tbody>
-      </table>
-    </div>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
   );
 }

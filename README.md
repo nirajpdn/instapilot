@@ -8,6 +8,7 @@ Next.js full-stack scaffold for a multi-account Instagram comment manager with:
 - BullMQ worker scaffold
 - OpenAI unique comment generation integration point
 - Playwright automation placeholders
+- Tailwind CSS v4 dashboard UI
 
 ## Setup
 
@@ -69,6 +70,7 @@ Fallback:
 
 ## Notes
 
+- UI styling uses Tailwind CSS v4 via `@import "tailwindcss"` in `/app/globals.css`.
 - Set `PLAYWRIGHT_HEADLESS=false` in `.env` if you want browser windows visible during worker runs.
 - Instagram UI can change frequently; selectors may need updates.
 - Failure screenshots are saved under `artifacts/screenshots/` and referenced in job target logs.
@@ -87,3 +89,4 @@ If you pull new code after changes to `prisma/schema.prisma`, run:
 
 - `npm run prisma:generate`
 - `npm run prisma:migrate`
+   - includes Tailwind CSS v4 (`tailwindcss` + `@tailwindcss/postcss`)
