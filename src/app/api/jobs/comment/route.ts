@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
-import { createCommentJobForAllActiveAccounts } from "@/lib/jobs";
+import { createCommentJobForAllActiveAccounts } from "@/lib/jobs/create-comment-job";
 
 const bodySchema = z.object({
   postUrl: z.string().url(),

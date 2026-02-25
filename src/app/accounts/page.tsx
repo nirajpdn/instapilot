@@ -1,5 +1,5 @@
-import { prisma } from "@/lib/db";
-import { AccountsClient } from "@/app/accounts/accounts-client";
+import { prisma } from "@/prisma/index";
+import { AccountsClient } from "@/features/accounts/components/accounts-client";
 
 export default async function AccountsPage() {
   const accounts = await prisma.instagramAccount.findMany({

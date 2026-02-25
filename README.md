@@ -68,6 +68,27 @@ Fallback:
 - Live job detail updates (SSE)
 - Admin auth protection for pages and APIs
 
+## Folder structure (improved)
+
+```text
+src/
+  app/                 # Next.js routes, pages, and API route handlers
+  components/          # Shared UI components (top bar, auth sync, logout button)
+  features/            # Feature-specific client components
+    accounts/
+    jobs/
+  lib/                 # Shared server/client utilities grouped by domain
+    ai/                # LLM comment generation
+    auth/              # Admin auth/session helpers
+    config/            # Env parsing
+    infra/             # Redis/BullMQ queue setup
+    instagram/         # Playwright Instagram automation + connect sessions
+    jobs/              # Job creation/services
+    security/          # Encryption helpers
+  store/               # Client state stores (Zustand)
+  types/               # Shared TS types/contracts
+```
+
 ## Notes
 
 - UI styling uses Tailwind CSS v4 via `@import "tailwindcss"` in `/app/globals.css`.

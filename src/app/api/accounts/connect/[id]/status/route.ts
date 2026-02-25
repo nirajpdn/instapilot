@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
-import { getInstagramConnectSessionStatus } from "@/lib/connect-session";
+import { getInstagramConnectSessionStatus } from "@/lib/instagram/connect-session";
 
 export const runtime = "nodejs";
 

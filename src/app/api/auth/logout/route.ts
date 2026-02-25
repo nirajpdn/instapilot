@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-import { ADMIN_SESSION_COOKIE } from "@/lib/admin-auth";
+import { ADMIN_SESSION_COOKIE } from "@/lib/auth/admin-auth";
 
 export async function POST(request: Request) {
   const requestUrl = new URL(request.url);

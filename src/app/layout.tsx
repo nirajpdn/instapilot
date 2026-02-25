@@ -3,7 +3,7 @@ import { cookies } from "next/headers";
 import {
   ADMIN_SESSION_COOKIE,
   verifyAdminSessionToken,
-} from "@/lib/admin-auth";
+} from "@/lib/auth/admin-auth";
 
 import "./globals.css";
 import Topbar from "../components/top-bar";

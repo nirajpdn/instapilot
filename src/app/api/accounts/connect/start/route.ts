@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-import { startInstagramConnectSession } from "@/lib/connect-session";
+import { startInstagramConnectSession } from "@/lib/instagram/connect-session";
 
 export const runtime = "nodejs";
 

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-import { prisma } from "@/lib/db";
+import { prisma } from "@/prisma/index";
 
 export async function GET() {
   const jobs = await prisma.commentJob.findMany({

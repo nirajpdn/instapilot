@@ -1,9 +1,9 @@
 import { CommentJobStatus, InstagramAccountStatus } from "@prisma/client";
 
-import { prisma } from "@/lib/db";
-import { normalizeInstagramPostUrl } from "@/lib/instagram";
-import { commentTargetQueue } from "@/lib/queue";
-import type { CommentTargetJobPayload } from "@/src/@types/jobs";
+import { prisma } from "@/prisma/index";
+import { normalizeInstagramPostUrl } from "@/lib/instagram/automation";
+import { commentTargetQueue } from "@/lib/infra/queue";
+import type { CommentTargetJobPayload } from "@/types/jobs";
 
 export async function createCommentJobForAllActiveAccounts(
   postUrl: string,

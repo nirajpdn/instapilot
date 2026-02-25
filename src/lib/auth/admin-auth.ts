@@ -1,6 +1,6 @@
 import crypto from "node:crypto";
 
-import { env } from "@/lib/env";
+import { env } from "@/lib/config/env";
 
 export const ADMIN_SESSION_COOKIE = "icm_admin_session";
 const SESSION_TTL_MS = 7 * 24 * 60 * 60 * 1000;

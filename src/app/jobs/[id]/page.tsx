@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 
-import { JobDetailClient } from "@/app/jobs/[id]/job-detail-client";
-import { prisma } from "@/lib/db";
+import { JobDetailClient } from "@/features/jobs/components/job-detail-client";
+import { prisma } from "@/prisma/index";
 
 export default async function JobDetailPage({
   params,

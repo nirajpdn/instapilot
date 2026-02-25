@@ -2,9 +2,12 @@ import { InstagramAccountStatus } from "@prisma/client";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
-import { prisma } from "@/lib/db";
-import { decryptJson } from "@/lib/encryption";
-import { validateInstagramSession, type StoredInstagramSession } from "@/lib/instagram";
+import { prisma } from "@/prisma/index";
+import { decryptJson } from "@/lib/security/encryption";
+import {
+  validateInstagramSession,
+  type StoredInstagramSession,
+} from "@/lib/instagram/automation";
 
 export const runtime = "nodejs";
 
@@ -72,14 +75,18 @@ export async function POST(
   } catch (error) {
     const updated = await prisma.instagramAccount.update({
       where: { id: account.id },
-      data: { status: InstagramAccountStatus.REQUIRES_RECONNECT, lastValidatedAt: new Date() },
+      data: {
+        status: InstagramAccountStatus.REQUIRES_RECONNECT,
+        lastValidatedAt: new Date(),
+      },
       select: { id: true, username: true, status: true, lastValidatedAt: true },
     });
     return NextResponse.json(
       {
         ok: false,
         account: updated,
-        reason: error instanceof Error ? error.message : "Session validation failed",
+        reason:
+          error instanceof Error ? error.message : "Session validation failed",
       },
       { status: 400 },
     );

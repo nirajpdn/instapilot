@@ -6,7 +6,7 @@ import {
   createAdminSessionToken,
   isAdminPasswordConfigured,
   verifyAdminPassword,
-} from "@/lib/admin-auth";
+} from "@/lib/auth/admin-auth";
 
 export const runtime = "nodejs";
 

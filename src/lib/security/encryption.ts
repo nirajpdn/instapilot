@@ -1,6 +1,6 @@
 import crypto from "node:crypto";
 
-import { env } from "@/lib/env";
+import { env } from "@/lib/config/env";
 
 const ALGO = "aes-256-gcm";
 

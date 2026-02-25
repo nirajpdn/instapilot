@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
-import { cancelInstagramConnectSession } from "@/lib/connect-session";
+import { cancelInstagramConnectSession } from "@/lib/instagram/connect-session";
 
 export const runtime = "nodejs";
 

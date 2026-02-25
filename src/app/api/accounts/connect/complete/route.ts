@@ -2,10 +2,10 @@ import { NextResponse } from "next/server";
 import { InstagramAccountStatus } from "@prisma/client";
 import { z } from "zod";
 
-import { completeInstagramConnectSession } from "@/lib/connect-session";
-import { prisma } from "@/lib/db";
-import { encryptJson } from "@/lib/encryption";
-import { sessionFromPlaywrightStorageState } from "@/lib/instagram";
+import { completeInstagramConnectSession } from "@/lib/instagram/connect-session";
+import { prisma } from "@/prisma/index";
+import { encryptJson } from "@/lib/security/encryption";
+import { sessionFromPlaywrightStorageState } from "@/lib/instagram/automation";
 
 export const runtime = "nodejs";
 
@@ -20,24 +20,30 @@ const cookieSchema = z.object({
   sameSite: z.enum(["Strict", "Lax", "None"]).catch("Lax"),
 });
 
-const bodySchema = z.object({
-  username: z.string().min(1).transform((value) => value.trim().toLowerCase()),
-  displayName: z.string().trim().optional(),
-  storageState: z
-    .object({
-      cookies: z.array(cookieSchema),
-    })
-    .optional(),
-  connectSessionId: z.string().uuid().optional(),
-}).refine((value) => value.storageState || value.connectSessionId, {
-  message: "Provide storageState or connectSessionId",
-});
+const bodySchema = z
+  .object({
+    username: z
+      .string()
+      .min(1)
+      .transform((value) => value.trim().toLowerCase()),
+    displayName: z.string().trim().optional(),
+    storageState: z
+      .object({
+        cookies: z.array(cookieSchema),
+      })
+      .optional(),
+    connectSessionId: z.string().uuid().optional(),
+  })
+  .refine((value) => value.storageState || value.connectSessionId, {
+    message: "Provide storageState or connectSessionId",
+  });
 
 export async function POST(request: Request) {
   try {
     const body = bodySchema.parse(await request.json());
     const storageState =
-      body.storageState ?? (await completeInstagramConnectSession(body.connectSessionId!));
+      body.storageState ??
+      (await completeInstagramConnectSession(body.connectSessionId!));
     const session = sessionFromPlaywrightStorageState(storageState);
     const encrypted = encryptJson(session);
 
@@ -66,7 +72,8 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ ok: true, account });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Failed to save account session";
+    const message =
+      error instanceof Error ? error.message : "Failed to save account session";
     return NextResponse.json({ error: message }, { status: 400 });
   }
 }

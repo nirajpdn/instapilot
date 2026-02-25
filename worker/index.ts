@@ -5,15 +5,15 @@ import {
 } from "@prisma/client";
 import { Worker } from "bullmq";
 
-import { prisma } from "@/lib/db";
-import { decryptJson } from "@/lib/encryption";
-import { generateUniqueComment } from "@/lib/openai";
+import { prisma } from "@/prisma/index";
+import { generateUniqueComment } from "@/lib/ai/comment-generator";
 import {
   postInstagramComment,
   type StoredInstagramSession,
-} from "@/lib/instagram";
-import { COMMENT_TARGET_QUEUE, redisConnection } from "@/lib/queue";
-import type { CommentTargetJobPayload } from "@/@types/jobs";
+} from "@/lib/instagram/automation";
+import { COMMENT_TARGET_QUEUE, redisConnection } from "@/lib/infra/queue";
+import { decryptJson } from "@/lib/security/encryption";
+import type { CommentTargetJobPayload } from "@/types/jobs";
 
 function sanitizeJsonValue(value: unknown): unknown {
   if (value === undefined) return undefined;
