@@ -197,6 +197,35 @@ export function AccountsClient({ initialAccounts }: Props) {
           >
             Complete Login
           </button>
+          <button
+            type="button"
+            style={{ background: "#6b7280" }}
+            disabled={isPending || !connectSessionId}
+            onClick={() => {
+              if (!connectSessionId) return;
+              setError(null);
+              setFeedback(null);
+              startTransition(async () => {
+                try {
+                  const response = await fetch(`/api/accounts/connect/${connectSessionId}/cancel`, {
+                    method: "POST",
+                  });
+                  const data = (await response.json()) as { error?: string };
+                  if (!response.ok) {
+                    throw new Error(data.error ?? "Failed to cancel browser login");
+                  }
+                  setConnectSessionId(null);
+                  setConnectSessionState(null);
+                  setConnectSessionUrl(null);
+                  setFeedback("Browser login session canceled.");
+                } catch (e) {
+                  setError(e instanceof Error ? e.message : "Failed to cancel browser login");
+                }
+              });
+            }}
+          >
+            Cancel Browser Login
+          </button>
         </div>
         {connectSessionId ? (
           <p className="muted" style={{ marginBottom: 0 }}>
