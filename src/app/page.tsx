@@ -1,53 +1,84 @@
-export default function HomePage() {
+import { getOverviewStats } from "@/lib/dashboard/stats";
+
+function StatCard({
+  icon,
+  value,
+  label,
+  badge,
+}: {
+  icon: string;
+  value: string;
+  label: string;
+  badge: string;
+}) {
   return (
-    <>
-      <section className="panel overflow-hidden">
-        <div className="relative">
-          <div className="pointer-events-none absolute -right-16 -top-16 h-40 w-40 rounded-full bg-brand-500/15 blur-2xl" />
-          <div className="pointer-events-none absolute -left-12 bottom-0 h-32 w-32 rounded-full bg-emerald-400/10 blur-2xl" />
-          <div className="relative">
-            <p className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-brand-700">
-              Overview
-            </p>
-            <h1>Instagram Comment Manager</h1>
-            <p className="muted mt-2 max-w-2xl">
-              MVP scaffold for multi-account session management, controlled comment execution, and
-              live job observability.
-            </p>
+    <div className="panel rounded-3xl p-6">
+      <div className="mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-amber-50 text-3xl">
+        <span aria-hidden>{icon}</span>
+      </div>
+      <div className="text-5xl font-semibold tracking-tight text-ink-950">{value}</div>
+      <p className="mt-2 text-sm text-ink-500">{label}</p>
+      <div className="mt-5">
+        <span className="inline-flex items-center rounded-full border border-paper-200 bg-paper-50 px-4 py-1.5 text-xs font-semibold tracking-wide text-ink-700">
+          {badge}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+export default async function HomePage() {
+  const stats = await getOverviewStats();
+
+  return (
+    <section className="space-y-6">
+      <div className="px-1">
+        <h1>Overview</h1>
+        <p className="mt-2 text-lg text-ink-500">Your automation dashboard at a glance.</p>
+      </div>
+
+      <div className="grid gap-5 xl:grid-cols-4 md:grid-cols-2">
+        <StatCard
+          icon="👥"
+          value={String(stats.activeAccounts)}
+          label="Active Accounts"
+          badge={`+${stats.activeAccountsDelta7d} this week`}
+        />
+        <StatCard
+          icon="💬"
+          value={String(stats.commentsPosted)}
+          label="Comments Posted"
+          badge={`+${stats.commentsPostedToday} today`}
+        />
+        <StatCard
+          icon="🕘"
+          value={String(stats.jobsExecuted)}
+          label="Jobs Executed"
+          badge={`${stats.jobsRunning} running`}
+        />
+        <StatCard
+          icon="✅"
+          value={`${stats.successRatePct}%`}
+          label="Success Rate"
+          badge={
+            stats.successRateDeltaPct === null
+              ? "No baseline yet"
+              : `${stats.successRateDeltaPct >= 0 ? "↑" : "↓"} ${Math.abs(stats.successRateDeltaPct)}%`
+          }
+        />
+      </div>
+
+      <div className="panel flex min-h-[360px] items-center justify-center rounded-3xl p-8">
+        <div className="max-w-2xl text-center">
+          <div className="mx-auto mb-8 flex h-24 w-24 items-center justify-center rounded-3xl bg-amber-50 text-5xl">
+            <span aria-hidden>⚡</span>
           </div>
+          <h2 className="text-4xl font-semibold tracking-tight text-ink-950">Ready to automate</h2>
+          <p className="mt-5 text-2xl leading-relaxed text-ink-500">
+            Connect accounts, configure your commenter, and launch jobs from the sidebar navigation.
+          </p>
         </div>
-      </section>
-      <section className="grid gap-5 lg:grid-cols-3">
-        <div className="panel lg:col-span-2">
-          <h2>Capabilities</h2>
-          <div className="mt-4 grid gap-3 sm:grid-cols-2">
-            {[
-              "Encrypted server-managed Instagram sessions",
-              "LLM-generated unique comments per account",
-              "Per-account delay/cooldown throttling",
-              "Pause/resume/cancel controls for running jobs",
-              "Failure screenshots and target-level logs",
-              "Live job updates over SSE",
-            ].map((item) => (
-              <div
-                key={item}
-                className="rounded-xl border border-paper-200 bg-paper-50/80 px-4 py-3 text-sm text-ink-700"
-              >
-                {item}
-              </div>
-            ))}
-          </div>
-        </div>
-        <div className="panel">
-          <h2>Workflow</h2>
-          <ol className="mt-4 space-y-3 text-sm text-ink-600">
-            <li>1. Connect accounts in `Accounts`</li>
-            <li>2. Validate sessions</li>
-            <li>3. Create a comment job from `Commenter`</li>
-            <li>4. Monitor progress and logs in `Jobs`</li>
-          </ol>
-        </div>
-      </section>
-    </>
+      </div>
+    </section>
   );
 }

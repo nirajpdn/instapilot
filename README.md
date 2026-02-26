@@ -67,6 +67,7 @@ Fallback:
 - Activity logs + failure screenshots
 - Live job detail updates (SSE)
 - Admin auth protection for pages and APIs
+- Overview dashboard stats API at `/api/stats`
 
 ## Folder structure (improved)
 
@@ -88,6 +89,19 @@ src/
   store/               # Client state stores (Zustand)
   types/               # Shared TS types/contracts
 ```
+
+## Stats API
+
+`GET /api/stats` returns aggregated overview metrics used by the home dashboard:
+
+- `activeAccounts`
+- `activeAccountsDelta7d`
+- `commentsPosted`
+- `commentsPostedToday`
+- `jobsExecuted`
+- `jobsRunning`
+- `successRatePct`
+- `successRateDeltaPct`
 
 ## Notes
 
