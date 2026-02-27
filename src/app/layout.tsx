@@ -4,16 +4,21 @@ import {
   ADMIN_SESSION_COOKIE,
   verifyAdminSessionToken,
 } from "@/lib/auth/admin-auth";
-
+import { Toaster } from "sonner";
 import "./globals.css";
-import Topbar from "../components/top-bar";
-import { useSession } from "../store/use-session";
 import { AuthSync } from "@/components/auth-sync";
+import { ThemeProvider } from "next-themes";
+import { Noto_Sans } from "next/font/google";
 
 export const metadata: Metadata = {
-  title: "Instagram Comment Manager",
-  description: "Internal dashboard for managing Instagram comment jobs",
+  title: "Instapilot",
+  description: "Autopilot for your instagram comments",
 };
+
+const sans = Noto_Sans({
+  subsets: ["latin"],
+  variable: "--font-sans",
+});
 
 export default async function RootLayout({
   children,
@@ -24,12 +29,18 @@ export default async function RootLayout({
   const sessionToken = cookieStore.get(ADMIN_SESSION_COOKIE)?.value;
   const isAuthenticated = verifyAdminSessionToken(sessionToken).valid;
   return (
-    <html lang="en">
+    <html lang="en" className={sans.className}>
       <body>
-        <div className="page-shell">
-          <Topbar />
-          <AuthSync isAuthenticated={isAuthenticated} />
-          <main className="space-y-5">{children}</main>
+        <div>
+          <Toaster />
+          <ThemeProvider
+            attribute="class"
+            defaultTheme="dark"
+            enableSystem={false}
+          >
+            <AuthSync isAuthenticated={isAuthenticated} />
+            <main>{children}</main>
+          </ThemeProvider>
         </div>
       </body>
     </html>
