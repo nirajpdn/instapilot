@@ -7,7 +7,7 @@
     "dev:worker": "tsx worker/index.ts",
     "dev:all": "concurrently -k -n web,worker \"next dev\" \"tsx worker/index.ts\"",
     "build": "next build",
-    "build:worker": "rm -rf dist-worker && tsc -p tsconfig.worker.json && tsc-alias -p tsconfig.worker.json",
+    "build:worker": "rm -rf dist-worker && tsc-alias -p tsconfig.worker.json && tsc-alias -p tsconfig.worker.json",
     "start:web": "next start",
     "start": "npm run build:worker && concurrently -k -n web,worker \"next start\" \"node dist-worker/worker/index.js\"",
     "lint": "next lint",
