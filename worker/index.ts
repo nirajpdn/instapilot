@@ -1,3 +1,5 @@
+import "dotenv/config";
+
 import { Worker } from "bullmq";
 
 import { COMMENT_TARGET_QUEUE, redisConnection } from "@/lib/infra/queue";

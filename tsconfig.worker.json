@@ -10,6 +10,11 @@
     "sourceMap": false,
     "isolatedModules": false
   },
-  "include": ["worker/**/*.ts", "src/lib/**/*.ts", "src/types/**/*.ts", "prisma/**/*.ts"],
+  "include": [
+    "worker/**/*.ts",
+    "src/lib/**/*.ts",
+    "src/types/**/*.ts",
+    "prisma/**/*.ts"
+  ],
   "exclude": ["node_modules", ".next"]
 }
