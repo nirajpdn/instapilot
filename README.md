@@ -20,8 +20,9 @@ Next.js full-stack scaffold for a multi-account Instagram comment manager with:
    - `npm run prisma:generate`
    - `npm run prisma:migrate`
 6. Start web app + worker together (dev): `npm run dev:all`
-7. Start production web + worker together: `npm run start`
-8. Optional worker build output only: `npm run build:worker`
+7. Start production web only: `npm run start`
+8. Start production web + worker together (self-hosted): `npm run start:all`
+9. Optional worker build output only: `npm run build:worker`
 
 ## What is implemented now
 
@@ -44,7 +45,7 @@ Next.js full-stack scaffold for a multi-account Instagram comment manager with:
 
 - The worker runs as a separate long-lived process and is started together with the web app via:
   - `npm run dev:all` (development)
-  - `npm run start` (production, builds worker via `tsconfig.worker.json` and runs `dist-worker/worker/index.js`)
+  - `npm run start:all` (production, self-hosted; builds worker via `tsconfig.worker.json` and runs `dist-worker/worker/index.js`)
 - If you only need the web app, use `npm run start:web`.
 - Vercel serverless runtime does not support long-lived background processes; run this stack on a VM/container host for continuous worker execution.
 
