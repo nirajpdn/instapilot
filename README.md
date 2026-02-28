@@ -1,6 +1,6 @@
-# Instagram Comment Manager (MVP Scaffold)
+# InstaPilot
 
-Next.js full-stack scaffold for a multi-account Instagram comment manager with:
+Next.js full-stack web app for a multi-account Instagram comment manager with:
 
 - server-managed encrypted sessions
 - account dashboard stubs
