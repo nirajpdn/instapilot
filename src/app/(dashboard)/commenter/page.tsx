@@ -83,6 +83,8 @@ export default function Commenter() {
                 value={postUrl}
                 onChange={(e) => setPostUrl(e.target.value)}
                 className="h-9 text-sm bg-secondary/50 border-border/50"
+                required
+                type="url"
               />
             </div>
             <div className="flex items-center gap-2 p-3 rounded-lg bg-secondary/30 border border-border/30">

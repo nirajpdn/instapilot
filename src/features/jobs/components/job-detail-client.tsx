@@ -1,5 +1,29 @@
 "use client";
 
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { $Enums } from "@prisma/client";
+import {
+  ArrowLeft,
+  CheckCircle2,
+  Clock,
+  Image,
+  Loader2,
+  Pause,
+  Play,
+  RefreshCw,
+  XCircle,
+} from "lucide-react";
+import Link from "next/link";
 import { useEffect, useState } from "react";
 
 type JobTarget = {
@@ -27,6 +51,46 @@ type ActivityLog = {
   message: string;
   metadataJson: unknown;
   createdAt: string;
+};
+
+const jobStatusMap: Record<
+  $Enums.CommentJobStatus,
+  {
+    icon: typeof CheckCircle2;
+    label: string;
+    variant: "success" | "live" | "destructive" | "secondary";
+  }
+> = {
+  QUEUED: { icon: CheckCircle2, label: "Completed", variant: "success" },
+  RUNNING: { icon: Loader2, label: "Running", variant: "live" },
+  PAUSED: { icon: Pause, label: "Paused", variant: "destructive" },
+  COMPLETED: { icon: CheckCircle2, label: "Completed", variant: "success" },
+  FAILED: { icon: XCircle, label: "Failed", variant: "destructive" },
+  CANCELED: { icon: XCircle, label: "Cancelled", variant: "destructive" },
+  PARTIAL: { icon: Loader2, label: "Partial", variant: "destructive" },
+};
+
+const targetStatusConfig: Record<
+  $Enums.CommentTargetStatus,
+  {
+    icon: typeof CheckCircle2;
+    label: string;
+    variant: "success" | "live" | "destructive" | "secondary";
+  }
+> = {
+  SUCCESS: { icon: CheckCircle2, label: "Completed", variant: "success" },
+  RUNNING: { icon: Loader2, label: "Running", variant: "live" },
+  FAILED: { icon: XCircle, label: "Failed", variant: "destructive" },
+  QUEUED: { icon: Clock, label: "Pending", variant: "secondary" },
+  SKIPPED: { icon: XCircle, label: "Skipped", variant: "destructive" },
+};
+
+type LogLevel = "INFO" | "WARN" | "ERROR";
+
+const levelColors: Record<LogLevel, string> = {
+  ERROR: "bg-destructive/15 text-destructive border-destructive/20",
+  WARN: "bg-warning/15 text-warning border-warning/20",
+  INFO: "bg-primary/15 text-primary border-primary/20",
 };
 
 type Props = {
@@ -115,189 +179,233 @@ export function JobDetailClient({ jobId, initialJob, initialLogs }: Props) {
     return "badge badge-neutral";
   };
 
+  const sc = jobStatusMap[job.status as $Enums.CommentJobStatus];
+
   return (
-    <>
-      <section className="panel">
-        <div className="mb-4 flex flex-col gap-3">
-          <div className="flex flex-col gap-2 lg:flex-row lg:items-start lg:justify-between">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-brand-700">
-                Job Detail
-              </p>
-              <h1 className="mt-1">Job {job.id}</h1>
-              <p className="muted mt-2 break-all">{job.normalizedPostUrl}</p>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              <span className={badgeClass(job.status)}>{job.status}</span>
-              {job.dryRun ? (
-                <span className="badge badge-neutral">DRY RUN</span>
-              ) : null}
-              {job.isPaused ? (
-                <span className="badge badge-warn">PAUSED</span>
-              ) : null}
-              {job.cancelRequested ? (
-                <span className="badge badge-danger">CANCEL REQUESTED</span>
-              ) : null}
-            </div>
-          </div>
-        </div>
-
-        <div className="mb-3 flex flex-wrap gap-2">
-          <button
-            type="button"
-            className="btn-warn"
-            disabled={controlPending !== null || job.status === "CANCELED"}
-            onClick={() => void sendJobControl("pause")}
-          >
-            {controlPending === "pause" ? "Pausing..." : "Pause"}
-          </button>
-          <button
-            type="button"
-            className="btn-brand"
-            disabled={controlPending !== null || job.status === "CANCELED"}
-            onClick={() => void sendJobControl("resume")}
-          >
-            {controlPending === "resume" ? "Resuming..." : "Resume"}
-          </button>
-          <button
-            type="button"
-            className="btn-danger"
-            disabled={controlPending !== null || job.status === "CANCELED"}
-            onClick={() => void sendJobControl("cancel")}
-          >
-            {controlPending === "cancel" ? "Canceling..." : "Cancel"}
-          </button>
-          <button
-            type="button"
-            className="btn-secondary"
-            disabled={controlPending !== null}
-            onClick={() => void refreshData()}
-          >
-            Refresh Now
-          </button>
-        </div>
-        <p className="muted mb-4">
-          Live updates: <code>{streamStatus}</code>
-          {lastRefreshAt ? (
-            <>
-              {" "}
-              • Last refresh: <code>{lastRefreshAt}</code>
-            </>
-          ) : null}
-        </p>
-        <div className="table-wrap">
-          <table className="table-base">
-            <thead>
-              <tr>
-                <th>Account</th>
-                <th>Status</th>
-                <th>Generated Comment</th>
-                <th>Error</th>
-              </tr>
-            </thead>
-            <tbody>
-              {job.targets.map((target) => (
-                <tr key={target.id} className="hover:bg-paper-50/70">
-                  <td className="font-medium text-ink-900">
-                    {target.account.username}
-                  </td>
-                  <td>
-                    <span className={badgeClass(target.status)}>
-                      {target.status}
-                    </span>
-                  </td>
-                  <td className="max-w-xl">
-                    <span className="line-clamp-3">
-                      {target.generatedComment ?? "-"}
-                    </span>
-                  </td>
-                  <td className="max-w-xl text-red-700/90">
-                    {target.errorMessage ?? "-"}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </section>
-
-      <section className="panel">
-        <div className="mb-4 flex items-center justify-between gap-3">
-          <h2>Target Logs</h2>
-          <span className="badge badge-neutral">{logs.length} rows</span>
-        </div>
-        {logs.length === 0 ? (
-          <p className="muted">No logs yet.</p>
-        ) : (
-          <div className="table-wrap">
-            <table className="table-base">
-              <thead>
-                <tr>
-                  <th>Time</th>
-                  <th>Target</th>
-                  <th>Level</th>
-                  <th>Message</th>
-                  <th>Metadata</th>
-                </tr>
-              </thead>
-              <tbody>
-                {logs.map((log) => (
-                  <tr key={log.id} className="hover:bg-paper-50/70">
-                    <td className="whitespace-nowrap text-xs text-ink-500">
-                      {log.createdAt}
-                    </td>
-                    <td className="font-mono text-xs text-ink-600">
-                      {log.entityId}
-                    </td>
-                    <td>
-                      <span
-                        className={badgeClass(
-                          log.level === "ERROR"
-                            ? "FAILED"
-                            : log.level === "WARN"
-                              ? "PAUSED"
-                              : "QUEUED",
-                        )}
+    <section className="space-y-6">
+      <div>
+        <Button
+          variant="ghost"
+          size="sm"
+          asChild
+          className="mb-3 -ml-2 text-muted-foreground"
+        >
+          <Link href="/jobs">
+            <ArrowLeft className="w-4 h-4 mr-1" /> Back to Jobs
+          </Link>
+        </Button>
+        <Card className="glass shadow-card">
+          <CardContent className="py-5 px-5">
+            <div className="flex items-start justify-between gap-4">
+              <div className="space-y-2 min-w-0">
+                <p className="text-[10px] font-semibold tracking-widest uppercase text-primary">
+                  Job Detail
+                </p>
+                <h1 className="text-xl font-bold tracking-tight font-mono break-all">
+                  Job {job.id}
+                </h1>
+                <p className="text-sm text-muted-foreground">
+                  {job.normalizedPostUrl}
+                </p>
+                <div className="flex items-center gap-2 pt-2 flex-wrap">
+                  {(job.status === "running" || job.status === "pending") && (
+                    <>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-8 text-xs"
+                        onClick={() => sendJobControl("pause")}
                       >
-                        {log.level}
-                      </span>
-                    </td>
-                    <td className="max-w-sm">{log.message}</td>
-                    <td className="max-w-xl">
-                      <code className="block whitespace-pre-wrap rounded-lg bg-paper-100 px-2 py-1 text-xs text-ink-600">
-                        {log.metadataJson
-                          ? JSON.stringify(log.metadataJson, null, 2)
-                          : "-"}
-                      </code>
-                      {typeof log.metadataJson === "object" &&
-                      log.metadataJson !== null &&
-                      "screenshotPath" in log.metadataJson &&
-                      typeof (log.metadataJson as { screenshotPath?: unknown })
-                        .screenshotPath === "string" ? (
-                        <div className="mt-2 space-y-2">
-                          <a
-                            className="text-sm font-medium text-brand-700 hover:text-brand-600"
-                            href={(log.metadataJson as { screenshotPath: string }).screenshotPath}
-                            target="_blank"
-                            rel="noreferrer"
-                          >
-                            View screenshot
-                          </a>
-                          <img
-                            src={(log.metadataJson as { screenshotPath: string }).screenshotPath}
-                            alt="Failure screenshot"
-                            className="max-w-52 rounded-lg border border-paper-200 shadow-sm"
-                          />
-                        </div>
-                      ) : null}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                        <Pause className="w-3 h-3 mr-1" /> Pause
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-8 text-xs"
+                        onClick={() => sendJobControl("resume")}
+                      >
+                        <Play className="w-3 h-3 mr-1" /> Resume
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        className="h-8 text-xs"
+                        onClick={() => sendJobControl("cancel")}
+                      >
+                        <XCircle className="w-3 h-3 mr-1" /> Cancel
+                      </Button>
+                    </>
+                  )}
+                  <Button
+                    size="sm"
+                    onClick={() => refreshData()}
+                    variant="outline"
+                    className="h-8 text-xs"
+                  >
+                    <RefreshCw className="w-3 h-3 mr-1" /> Refresh Now
+                  </Button>
+                </div>
+                <p className="text-[11px] text-muted-foreground pt-1">
+                  Live updates:{" "}
+                  <span className="text-primary font-medium">live</span> • Last
+                  refresh:{" "}
+                  {lastRefreshAt && (
+                    <>{new Date(lastRefreshAt).toLocaleString()}</>
+                  )}
+                </p>
+              </div>
+              <Badge variant={sc.variant} className="text-xs shrink-0">
+                <sc.icon
+                  className={`w-3 h-3 mr-1 ${job.status === "running" ? "animate-spin" : ""}`}
+                />
+                {sc.label}
+              </Badge>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Account Results */}
+      <Card className="glass shadow-card">
+        <CardContent className="p-0">
+          <Table>
+            <TableHeader>
+              <TableRow className="border-border/40">
+                <TableHead className="text-[10px] font-semibold tracking-widest uppercase">
+                  Account
+                </TableHead>
+                <TableHead className="text-[10px] font-semibold tracking-widest uppercase">
+                  Status
+                </TableHead>
+                <TableHead className="text-[10px] font-semibold tracking-widest uppercase">
+                  Generated Comment
+                </TableHead>
+                <TableHead className="text-[10px] font-semibold tracking-widest uppercase">
+                  Error
+                </TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {job.targets.map((acc) => {
+                const asc =
+                  targetStatusConfig[acc.status as $Enums.CommentTargetStatus];
+                return (
+                  <TableRow
+                    key={acc.account.username}
+                    className="border-border/30"
+                  >
+                    <TableCell className="font-medium text-sm">
+                      {acc.account.username}
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={asc.variant} className="text-[10px]">
+                        <asc.icon
+                          className={`w-3 h-3 mr-1 ${acc.status === "running" ? "animate-spin" : ""}`}
+                        />
+                        {asc.label}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-sm text-muted-foreground">
+                      {acc.generatedComment || "—"}
+                    </TableCell>
+                    <TableCell className="text-sm text-destructive">
+                      {acc.errorMessage || ""}
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+
+      <Card className="glass shadow-card">
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-lg font-bold">Target Logs</CardTitle>
+            <Badge variant="outline" className="text-xs font-mono">
+              {logs.length} rows
+            </Badge>
           </div>
-        )}
-      </section>
-    </>
+        </CardHeader>
+        <CardContent className="p-0">
+          <Table>
+            <TableHeader>
+              <TableRow className="border-border/40">
+                <TableHead className="text-[10px] font-semibold tracking-widest uppercase">
+                  Time
+                </TableHead>
+                <TableHead className="text-[10px] font-semibold tracking-widest uppercase">
+                  Target
+                </TableHead>
+                <TableHead className="text-[10px] font-semibold tracking-widest uppercase">
+                  Level
+                </TableHead>
+                <TableHead className="text-[10px] font-semibold tracking-widest uppercase">
+                  Message
+                </TableHead>
+                <TableHead className="text-[10px] font-semibold tracking-widest uppercase">
+                  Metadata
+                </TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {logs.map((log, i) => (
+                <TableRow key={i} className="border-border/30 align-top">
+                  <TableCell className="font-mono text-[11px] text-muted-foreground whitespace-nowrap">
+                    {new Date(log.createdAt).toLocaleString()}
+                  </TableCell>
+                  <TableCell className="font-mono text-[11px] text-muted-foreground break-all max-w-40">
+                    {log.entityId}
+                  </TableCell>
+                  <TableCell>
+                    <Badge
+                      className={`${levelColors[log.level as LogLevel]} text-[10px] border font-medium`}
+                    >
+                      {log.level}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-sm">{log.message}</TableCell>
+                  <TableCell className="max-w-70">
+                    <pre className="text-[11px] text-muted-foreground bg-secondary/50 rounded-md p-2 overflow-auto whitespace-pre-wrap font-mono">
+                      {log.metadataJson
+                        ? JSON.stringify(log.metadataJson, null, 2)
+                        : "{}"}
+                    </pre>
+                    {typeof log.metadataJson === "object" &&
+                    log.metadataJson !== null &&
+                    "screenshotPath" in log.metadataJson &&
+                    typeof (log.metadataJson as { screenshotPath?: unknown })
+                      .screenshotPath === "string" ? (
+                      <div className="mt-2 space-y-2">
+                        <a
+                          className="text-sm font-medium hover:text-brand-600 text-primary hover:underline mt-2 flex items-center gap-1"
+                          href={
+                            (log.metadataJson as { screenshotPath: string })
+                              .screenshotPath
+                          }
+                          target="_blank"
+                          rel="noreferrer"
+                        >
+                          <Image className="w-3 h-3" /> View screenshot
+                        </a>
+                        <img
+                          src={
+                            (log.metadataJson as { screenshotPath: string })
+                              .screenshotPath
+                          }
+                          alt="Failure screenshot"
+                          className="max-w-52 rounded-lg border border-paper-200 shadow-sm"
+                        />
+                      </div>
+                    ) : null}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+    </section>
   );
 }

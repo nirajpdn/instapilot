@@ -1,5 +1,6 @@
 "use client";
 
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -10,7 +11,17 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Globe, KeyRound, Shield } from "lucide-react";
+import {
+  CheckCircle2,
+  CloudBackup,
+  Globe,
+  KeyRound,
+  Shield,
+  Trash2,
+  UserCircle,
+  Users,
+  XCircle,
+} from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 import { toast } from "sonner";
@@ -219,6 +230,7 @@ export function AccountsClient({ initialAccounts }: Props) {
         }
         setFeedback(`Connected @${data.account?.username ?? username}`);
         toast.success(`Connected @${data.account?.username ?? username}`);
+        setError(null);
         setConnectSessionId(null);
         setConnectSessionState(null);
         setConnectSessionUrl(null);
@@ -294,545 +306,230 @@ export function AccountsClient({ initialAccounts }: Props) {
       }
     });
   };
-  return (
-    <>
-      <section className="space-y-5">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Accounts</h1>
-          <p className="text-muted-foreground text-sm mt-1">
-            Connect Instagram accounts via browser login or paste session data.
-          </p>
-        </div>
-        <div className="grid lg:grid-cols-2 gap-6">
-          <Card className="glass shadow-card">
-            <CardHeader className="pb-3">
-              <div className="flex items-center gap-2 mb-1">
-                <div className="w-8 h-8 rounded-md bg-primary/10 flex items-center justify-center">
-                  <Globe className="w-4 h-4 text-primary" />
-                </div>
-                <CardTitle className="text-base">Browser Login</CardTitle>
-              </div>
-              <CardDescription className="text-xs">
-                Opens a Playwright browser window. Log into Instagram, then
-                click complete.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <Button
-                disabled={isPending || Boolean(connectSessionId)}
-                onClick={browerLogin}
-                className="w-full bg-gradient-primary text-primary-foreground hover:opacity-90 transition-opacity"
-              >
-                Start Browser Login
-              </Button>
-              <div className="grid grid-cols-2 gap-2">
-                <Button
-                  variant="success"
-                  disabled={isPending || !connectSessionId || !username.trim()}
-                  onClick={handleCompleteLogin}
-                  size="sm"
-                  className="text-xs"
-                >
-                  Complete Login
-                </Button>
-                <Button
-                  disabled={isPending || !connectSessionId}
-                  onClick={handleCancel}
-                  variant="outline"
-                  size="sm"
-                  className="text-xs"
-                >
-                  Cancel
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
 
-          {/* Paste Storage State */}
-          <Card className="glass shadow-card">
-            <CardHeader className="pb-3">
-              <div className="flex items-center gap-2 mb-1">
-                <div className="w-8 h-8 rounded-md bg-primary/10 flex items-center justify-center">
-                  <KeyRound className="w-4 h-4 text-primary" />
-                </div>
-                <CardTitle className="text-base">Paste Session</CardTitle>
+  const statusBadge = (status: string) => {
+    switch (status) {
+      case "ACTIVE":
+        return (
+          <Badge className="bg-success/15 text-success border-success/20 text-[10px] gap-1">
+            <CheckCircle2 className="w-3 h-3" /> Active
+          </Badge>
+        );
+      case "REQUIRES_RECONNECT":
+        return (
+          <Badge
+            variant="outline"
+            className="text-orange-400 border-orange-400/20 text-[10px] gap-1"
+          >
+            <CloudBackup className="w-3 h-3" /> Require Reconnect
+          </Badge>
+        );
+      default:
+        return (
+          <Badge
+            variant="outline"
+            className="text-destructive border-destructive/30 text-[10px] gap-1"
+          >
+            <XCircle className="w-3 h-3" /> {status}
+          </Badge>
+        );
+    }
+  };
+
+  return (
+    <section className="space-y-5">
+      <div>
+        <h1 className="text-2xl font-bold tracking-tight">Accounts</h1>
+        <p className="text-muted-foreground text-sm mt-1">
+          Connect via in-app browser login or paste Playwright StorageState JSON
+          as a fallback.
+        </p>
+      </div>
+      <div className="grid lg:grid-cols-2 gap-6">
+        <Card className="glass shadow-card">
+          <CardHeader className="pb-3">
+            <div className="flex items-center gap-2 mb-1">
+              <div className="w-8 h-8 rounded-md bg-primary/10 flex items-center justify-center">
+                <Globe className="w-4 h-4 text-primary" />
               </div>
-              <CardDescription className="text-xs">
-                Manually paste Playwright storageState JSON as a fallback.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <form className="space-y-3" onSubmit={handleSaveSession}>
-                <div className="space-y-1.5">
-                  <label className="text-xs text-muted-foreground">
-                    Instagram username
-                  </label>
-                  <Input
-                    placeholder="Username"
-                    value={username}
-                    onChange={(e) => setUsername(e.target.value)}
-                    className="h-9 text-sm bg-secondary/50 border-border/50"
-                    required
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <label className="text-xs text-muted-foreground">
-                    Display name (optional)
-                  </label>
-                  <Input
-                    placeholder="Brand / persona name"
-                    value={displayName}
-                    onChange={(e) => setDisplayName(e.target.value)}
-                    className="h-9 text-sm bg-secondary/50 border-border/50"
-                    required
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <label className="text-xs text-muted-foreground">
-                    StorageState JSON
-                  </label>
-                  <Textarea
-                    placeholder='{"cookies":[...],"origins":[]}'
-                    value={storageState}
-                    onChange={(e) => setStorageState(e.target.value)}
-                    className="h-24 text-xs font-mono bg-secondary/50 border-border/50 resize-none"
-                  />
-                </div>
-                <Button variant="hero" className="w-full text-xs">
-                  <Shield className="w-3.5 h-3.5 mr-1.5" />
-                  Save Account Session
-                </Button>
-              </form>
-            </CardContent>
-          </Card>
-        </div>
+              <CardTitle className="text-base">Browser Login</CardTitle>
+            </div>
+            <CardDescription className="text-xs">
+              Opens a Playwright browser window. Log into Instagram, then click
+              complete.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <Button
+              disabled={isPending || Boolean(connectSessionId)}
+              onClick={browerLogin}
+              className="w-full bg-gradient-primary text-primary-foreground hover:opacity-90 transition-opacity"
+            >
+              Start Browser Login
+            </Button>
+            <div className="grid grid-cols-2 gap-2">
+              <Button
+                variant="success"
+                disabled={isPending || !connectSessionId || !username.trim()}
+                onClick={handleCompleteLogin}
+                size="sm"
+                className="text-xs"
+              >
+                Complete Login
+              </Button>
+              <Button
+                disabled={isPending || !connectSessionId}
+                onClick={handleCancel}
+                variant="outline"
+                size="sm"
+                className="text-xs"
+              >
+                Cancel
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="glass shadow-card">
+          <CardHeader className="pb-3">
+            <div className="flex items-center gap-2 mb-1">
+              <div className="w-8 h-8 rounded-md bg-primary/10 flex items-center justify-center">
+                <KeyRound className="w-4 h-4 text-primary" />
+              </div>
+              <CardTitle className="text-base">Paste Session</CardTitle>
+            </div>
+            <CardDescription className="text-xs">
+              Manually paste Playwright storageState JSON as a fallback.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form className="space-y-3" onSubmit={handleSaveSession}>
+              <div className="space-y-1.5">
+                <label className="text-xs text-muted-foreground">
+                  Instagram username
+                </label>
+                <Input
+                  placeholder="Username"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  className="h-9 text-sm bg-secondary/50 border-border/50"
+                  required
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-xs text-muted-foreground">
+                  Display name (optional)
+                </label>
+                <Input
+                  placeholder="Brand / persona name"
+                  value={displayName}
+                  onChange={(e) => setDisplayName(e.target.value)}
+                  className="h-9 text-sm bg-secondary/50 border-border/50"
+                  required
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-xs text-muted-foreground">
+                  StorageState JSON
+                </label>
+                <Textarea
+                  placeholder='{"cookies":[...],"origins":[]}'
+                  value={storageState}
+                  onChange={(e) => setStorageState(e.target.value)}
+                  className="h-24 text-xs font-mono bg-secondary/50 border-border/50 resize-none"
+                />
+              </div>
+              <Button variant="hero" className="w-full text-xs">
+                <Shield className="w-3.5 h-3.5 mr-1.5" />
+                Save Account Session
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
+      </div>
+      <div className="space-y-2">
         {connectSessionId ? (
-          <div className="mt-4 rounded-xl border px-3 py-2 text-sm">
-            Session: <code>{connectSessionId}</code> • State:{" "}
-            <code>{connectSessionState ?? "-"}</code>
-            {connectSessionUrl ? (
-              <>
-                • URL: <code>{connectSessionUrl}</code>
-              </>
-            ) : null}
+          <div className="mt-4 rounded-md border px-3 py-2 text-sm">
+            {JSON.stringify(
+              {
+                Session: connectSessionId,
+                State: connectSessionState,
+                URL: connectSessionUrl,
+              },
+              null,
+              2,
+            )}
           </div>
         ) : null}
         {feedback ? (
-          <p className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
+          <p className="mt-4 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
             {feedback}
           </p>
         ) : null}
         {error ? (
-          <p className="mt-4 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+          <p className="mt-4 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
             {error}
           </p>
         ) : null}
-      </section>
-      <section className="space-y-5">
-        <div className="panel">
-          <div className="mb-5 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-brand-700">
-                Accounts
-              </p>
-              <h1 className="mt-1">Instagram Account Sessions</h1>
-              <p className="muted mt-2">
-                Connect via in-app browser login or paste Playwright{" "}
-                <code>storageState</code> JSON as a fallback.
-              </p>
-            </div>
-            <span className="badge badge-neutral">
-              {initialAccounts.length} accounts
-            </span>
-          </div>
-
-          <div className="rounded-2xl border border-paper-200 bg-paper-50/70 p-4">
-            <h2 className="text-base">Browser Login Flow</h2>
-            <p className="muted mt-2">
-              Starts a local Playwright browser window from the backend. Log
-              into Instagram there, then click complete below.
-            </p>
-            <div className="mt-4 flex flex-wrap items-center gap-2">
-              <button type="button" className="btn-brand">
-                Start Browser Login
-              </button>
-              <button type="button" className="btn-primary">
-                Complete Login
-              </button>
-              <button type="button" className="btn-secondary">
-                Cancel Browser Login
-              </button>
-            </div>
-            {connectSessionId ? (
-              <div className="mt-4 rounded-xl border border-brand-100 bg-brand-50/60 px-3 py-2 text-sm text-ink-700">
-                Session: <code>{connectSessionId}</code> • State:{" "}
-                <code>{connectSessionState ?? "-"}</code>
-                {connectSessionUrl ? (
-                  <>
-                    {" "}
-                    • URL: <code>{connectSessionUrl}</code>
-                  </>
-                ) : null}
-              </div>
-            ) : null}
-          </div>
-
-          <form
-            className="mt-5 rounded-2xl border border-paper-200 bg-white p-4"
-            onSubmit={(event) => {}}
-          >
-            <h2 className="text-base">Paste StorageState (Fallback)</h2>
-            <div className="mt-4 grid-form">
-              <div>
-                <label htmlFor="username">Instagram username</label>
-                <input
-                  id="username"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  placeholder="account_username"
-                  required
-                />
-              </div>
-              <div>
-                <label htmlFor="displayName">Display name (optional)</label>
-                <input
-                  id="displayName"
-                  value={displayName}
-                  onChange={(e) => setDisplayName(e.target.value)}
-                  placeholder="Brand / persona name"
-                />
-              </div>
-              <div>
-                <label htmlFor="storageState">
-                  Playwright storageState JSON
-                </label>
-                <textarea
-                  id="storageState"
-                  value={storageState}
-                  onChange={(e) => setStorageState(e.target.value)}
-                  rows={8}
-                  placeholder='{"cookies":[...],"origins":[]}'
-                  className="min-h-44 resize-y"
-                  required
-                />
-              </div>
-              <div>
-                <button
-                  type="submit"
-                  className="btn-primary"
-                  disabled={isPending}
-                >
-                  {isPending ? "Saving..." : "Save Account Session"}
-                </button>
-              </div>
-            </div>
-          </form>
-
-          {feedback ? (
-            <p className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
-              {feedback}
-            </p>
-          ) : null}
-          {error ? (
-            <p className="mt-4 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
-              {error}
-            </p>
-          ) : null}
+      </div>
+      <div>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-semibold tracking-tight">
+            Connected Accounts
+          </h2>
+          <Badge variant="outline" className="text-xs font-mono">
+            {initialAccounts.length} accounts
+          </Badge>
         </div>
-
-        <div className="panel">
-          <div className="mb-4 flex items-center justify-between gap-3">
-            <h2>Connected Accounts</h2>
-            <span className="badge badge-neutral">
-              Throttle + session controls
-            </span>
-          </div>
-          <div className="table-wrap">
-            <table className="table-base">
-              <thead>
-                <tr>
-                  <th>Username</th>
-                  <th>Status</th>
-                  <th>Last Validated</th>
-                  <th>Throttle</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {initialAccounts.length === 0 ? (
-                  <tr>
-                    <td
-                      colSpan={5}
-                      className="!py-8 text-center text-sm text-ink-500"
-                    >
-                      No accounts connected yet.
-                    </td>
-                  </tr>
-                ) : (
-                  initialAccounts.map((account) => (
-                    <tr key={account.id} className="hover:bg-paper-50/70">
-                      <td>
-                        <div className="font-medium text-ink-900">
-                          @{account.username}
-                        </div>
-                        {account.displayName ? (
-                          <div className="text-xs text-ink-500">
-                            {account.displayName}
-                          </div>
-                        ) : null}
-                      </td>
-                      <td>
-                        <span
-                          className={
-                            account.status === "ACTIVE"
-                              ? "badge badge-success"
-                              : account.status === "REQUIRES_RECONNECT"
-                                ? "badge badge-warn"
-                                : "badge badge-neutral"
-                          }
-                        >
-                          {account.status}
+        <div className="space-y-2">
+          {!initialAccounts.length && (
+            <div className="flex flex-col border items-center justify-center py-10 px-4 text-center">
+              <div className="mb-2 p-4 bg-muted-foreground/10 rounded-full">
+                <Users className="h-12 w-12 text-primary" />
+              </div>
+              <p className="text-sm max-w-xs">
+                You don&apos;t have connected any account yet.
+              </p>
+            </div>
+          )}
+          {initialAccounts.map((account) => (
+            <Card key={account.username} className="glass shadow-card">
+              <CardContent className="flex items-center justify-between py-3 px-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-full bg-secondary flex items-center justify-center">
+                    <UserCircle className="w-5 h-5 text-muted-foreground" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-medium">
+                        @{account.username}
+                      </span>
+                      {account.displayName && (
+                        <span className="text-xs text-muted-foreground">
+                          · {account.displayName}
                         </span>
-                      </td>
-                      <td className="text-xs text-ink-500">
-                        {account.lastValidatedAt ?? "-"}
-                      </td>
-                      <td>
-                        <div className="grid min-w-56 gap-2">
-                          <label className="mb-0 flex items-center gap-2">
-                            <span className="w-20 text-xs font-medium text-ink-500">
-                              Min Delay
-                            </span>
-                            <input
-                              type="number"
-                              min={0}
-                              step={100}
-                              value={
-                                settingsDrafts[account.id]?.minDelayMs ??
-                                account.minDelayMs
-                              }
-                              onChange={(e) =>
-                                setSettingsDrafts((prev) => ({
-                                  ...prev,
-                                  [account.id]: {
-                                    ...(prev[account.id] ?? {
-                                      minDelayMs: account.minDelayMs,
-                                      maxDelayMs: account.maxDelayMs,
-                                      minCooldownSec: account.minCooldownSec,
-                                    }),
-                                    minDelayMs: Number(e.target.value),
-                                  },
-                                }))
-                              }
-                              className="w-28"
-                            />
-                          </label>
-                          <label className="mb-0 flex items-center gap-2">
-                            <span className="w-20 text-xs font-medium text-ink-500">
-                              Max Delay
-                            </span>
-                            <input
-                              type="number"
-                              min={0}
-                              step={100}
-                              value={
-                                settingsDrafts[account.id]?.maxDelayMs ??
-                                account.maxDelayMs
-                              }
-                              onChange={(e) =>
-                                setSettingsDrafts((prev) => ({
-                                  ...prev,
-                                  [account.id]: {
-                                    ...(prev[account.id] ?? {
-                                      minDelayMs: account.minDelayMs,
-                                      maxDelayMs: account.maxDelayMs,
-                                      minCooldownSec: account.minCooldownSec,
-                                    }),
-                                    maxDelayMs: Number(e.target.value),
-                                  },
-                                }))
-                              }
-                              className="w-28"
-                            />
-                          </label>
-                          <label className="mb-0 flex items-center gap-2">
-                            <span className="w-20 text-xs font-medium text-ink-500">
-                              Cooldown
-                            </span>
-                            <input
-                              type="number"
-                              min={0}
-                              step={1}
-                              value={
-                                settingsDrafts[account.id]?.minCooldownSec ??
-                                account.minCooldownSec
-                              }
-                              onChange={(e) =>
-                                setSettingsDrafts((prev) => ({
-                                  ...prev,
-                                  [account.id]: {
-                                    ...(prev[account.id] ?? {
-                                      minDelayMs: account.minDelayMs,
-                                      maxDelayMs: account.maxDelayMs,
-                                      minCooldownSec: account.minCooldownSec,
-                                    }),
-                                    minCooldownSec: Number(e.target.value),
-                                  },
-                                }))
-                              }
-                              className="w-28"
-                            />
-                          </label>
-                        </div>
-                      </td>
-                      <td>
-                        <div className="flex flex-wrap gap-2">
-                          {account.status === "REQUIRES_RECONNECT" && (
-                            <button
-                              type="button"
-                              disabled={busyId === account.id || isPending}
-                              className="btn-warn"
-                              onClick={() => {
-                                setBusyId(account.id);
-                                startTransition(async () => {
-                                  try {
-                                    await startBrowserLoginForAccount({
-                                      username: account.username,
-                                      displayName: account.displayName,
-                                    });
-                                  } catch (e) {
-                                    setError(
-                                      e instanceof Error
-                                        ? e.message
-                                        : "Failed to start reconnect flow",
-                                    );
-                                  } finally {
-                                    setBusyId(null);
-                                  }
-                                });
-                              }}
-                            >
-                              Reconnect
-                            </button>
-                          )}
-                          <button
-                            type="button"
-                            disabled={busyId === account.id || isPending}
-                            className="btn-brand"
-                            onClick={() => {
-                              const draft = settingsDrafts[account.id];
-                              if (!draft) return;
-                              setBusyId(account.id);
-                              setError(null);
-                              setFeedback(null);
-                              startTransition(async () => {
-                                try {
-                                  const response = await fetch(
-                                    `/api/accounts/${account.id}/settings`,
-                                    {
-                                      method: "POST",
-                                      headers: {
-                                        "Content-Type": "application/json",
-                                      },
-                                      body: JSON.stringify(draft),
-                                    },
-                                  );
-                                  const data = (await response.json()) as {
-                                    error?: string;
-                                  };
-                                  if (!response.ok) {
-                                    throw new Error(
-                                      data.error ?? "Failed to save settings",
-                                    );
-                                  }
-                                  setFeedback(
-                                    `Saved throttle settings for @${account.username}`,
-                                  );
-                                  router.refresh();
-                                } catch (e) {
-                                  setError(
-                                    e instanceof Error
-                                      ? e.message
-                                      : "Failed to save settings",
-                                  );
-                                } finally {
-                                  setBusyId(null);
-                                }
-                              });
-                            }}
-                          >
-                            Save Limits
-                          </button>
-                          <button
-                            type="button"
-                            disabled={busyId === account.id || isPending}
-                            className="btn-secondary"
-                            onClick={() => {
-                              setBusyId(account.id);
-                              startTransition(async () => {
-                                try {
-                                  const data = await runAccountAction(
-                                    `/api/accounts/${account.id}/validate`,
-                                  );
-                                  setFeedback(
-                                    data.ok
-                                      ? `@${account.username} session is valid`
-                                      : `@${account.username} requires reconnect (${data.reason ?? "invalid"})`,
-                                  );
-                                  router.refresh();
-                                } catch (e) {
-                                  setError(
-                                    e instanceof Error
-                                      ? e.message
-                                      : "Validation failed",
-                                  );
-                                } finally {
-                                  setBusyId(null);
-                                }
-                              });
-                            }}
-                          >
-                            Validate
-                          </button>
-                          <button
-                            type="button"
-                            disabled={busyId === account.id || isPending}
-                            className="btn-danger"
-                            onClick={() => {
-                              setBusyId(account.id);
-                              startTransition(async () => {
-                                try {
-                                  await runAccountAction(
-                                    `/api/accounts/${account.id}/disconnect`,
-                                  );
-                                  setFeedback(
-                                    `Disconnected @${account.username}`,
-                                  );
-                                  router.refresh();
-                                } catch (e) {
-                                  setError(
-                                    e instanceof Error
-                                      ? e.message
-                                      : "Disconnect failed",
-                                  );
-                                } finally {
-                                  setBusyId(null);
-                                }
-                              });
-                            }}
-                          >
-                            Disconnect
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
+                      )}
+                    </div>
+                    <span className="text-[11px] text-muted-foreground">
+                      Created at {new Date(account.createdAt).toLocaleString()}
+                    </span>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  {statusBadge(account.status)}
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
         </div>
-      </section>
-    </>
+      </div>
+    </section>
   );
 }
