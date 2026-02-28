@@ -1,10 +1,19 @@
 "use client";
 
-import { useRouter, useSearchParams } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Shield } from "lucide-react";
+import { useSearchParams } from "next/navigation";
 import { useState, useTransition } from "react";
 
 export default function LoginPage() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -12,47 +21,50 @@ export default function LoginPage() {
 
   const next = searchParams.get("next") || "/";
   const safeNext = next.startsWith("/") ? next : "/";
-
+  const handleLogin = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setError(null);
+    startTransition(async () => {
+      try {
+        const response = await fetch("/api/auth/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ password }),
+        });
+        const data = (await response.json()) as { error?: string };
+        if (!response.ok) {
+          throw new Error(data.error ?? "Login failed");
+        }
+        window.location.assign(safeNext);
+      } catch (e) {
+        setError(e instanceof Error ? e.message : "Login failed");
+      }
+    });
+  };
   return (
-    <div className="mx-auto mt-10 max-w-md">
-      <div className="panel overflow-hidden">
-        <div className="relative">
-          <div className="pointer-events-none absolute -top-12 right-0 h-28 w-28 rounded-full bg-brand-500/20 blur-2xl" />
-          <div className="relative">
-            <p className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-brand-700">
-              Secure Access
-            </p>
-            <h1>Admin Login</h1>
-            <p className="muted mt-2">Enter the dashboard admin password.</p>
+    <div className="mx-auto max-w-md overflow-hidden">
+      <Card className="glass shadow-card">
+        <CardHeader className="pb-3">
+          <div className="flex items-center gap-2 mb-1">
+            <div className="w-8 h-8 rounded-md bg-primary/10 flex items-center justify-center">
+              <Shield className="w-4 h-4 text-primary" />
+            </div>
+            <CardTitle className="text-base">Admin Login</CardTitle>
           </div>
-        </div>
-        <form
-          className="mt-5"
-          onSubmit={(event) => {
-            event.preventDefault();
-            setError(null);
-            startTransition(async () => {
-              try {
-                const response = await fetch("/api/auth/login", {
-                  method: "POST",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({ password }),
-                });
-                const data = (await response.json()) as { error?: string };
-              if (!response.ok) {
-                throw new Error(data.error ?? "Login failed");
-              }
-              window.location.assign(safeNext);
-            } catch (e) {
-              setError(e instanceof Error ? e.message : "Login failed");
-            }
-            });
-        }}
-      >
-          <div className="grid-form">
+          <CardDescription className="text-xs">
+            Enter the dashboard admin password.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <form className="space-y-3" onSubmit={handleLogin}>
             <div>
-              <label htmlFor="password">Password</label>
-              <input
+              <label
+                className="text-xs text-muted-foreground"
+                htmlFor="password"
+              >
+                Password
+              </label>
+              <Input
                 id="password"
                 type="password"
                 value={password}
@@ -61,21 +73,20 @@ export default function LoginPage() {
                 required
               />
             </div>
-            <button
-              type="submit"
-              className="btn-brand w-full"
+            <Button
               disabled={isPending}
+              className="w-full bg-gradient-primary text-primary-foreground hover:opacity-90 transition-opacity"
             >
-              {isPending ? "Signing in..." : "Sign In"}
-            </button>
-          </div>
-        </form>
-        {error ? (
-          <p className="mt-4 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
-            {error}
-          </p>
-        ) : null}
-      </div>
+              {isPending ? "Please wait..." : "Login"}
+            </Button>
+          </form>
+          {error ? (
+            <p className="mt-4 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+              {error}
+            </p>
+          ) : null}
+        </CardContent>
+      </Card>
     </div>
   );
 }
