@@ -12,12 +12,12 @@ const Topbar = () => {
     <header className="mb-6">
       <nav className="fixed top-0 left-0 right-0 z-50 border-b border-border/50 bg-background/80 backdrop-blur-xl">
         <div className="max-w-6xl mx-auto flex items-center justify-between px-6 h-16">
-          <div className="flex items-center gap-2">
+          <Link href="/" className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-lg bg-gradient-primary flex items-center justify-center">
               <Rocket className="w-4 h-4 text-primary-foreground" />
             </div>
             <span className="font-bold text-lg tracking-tight">InstaPilot</span>
-          </div>
+          </Link>
 
           <div className="hidden md:flex items-center gap-4 text-sm text-muted-foreground">
             <a
