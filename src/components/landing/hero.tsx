@@ -5,7 +5,7 @@ import { ArrowRight, Rocket } from "lucide-react";
 
 export default function HeroSection() {
   return (
-    <section className="relative pt-24 px-6 overflow-hidden">
+    <section className="relative px-6 overflow-hidden">
       <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-150 h-150 rounded-full bg-primary/5 blur-[120px] pointer-events-none" />
       <div className="absolute bottom-0 left-0 right-0 h-px bg-linear-to-r from-transparent via-border to-transparent" />
 
