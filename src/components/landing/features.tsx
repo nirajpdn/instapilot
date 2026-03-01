@@ -13,7 +13,7 @@ const features = [
     icon: Brain,
     title: "LLM-Generated Comments",
     description:
-      "AI crafts unique, contextual comments for each account — no duplicate or spammy text.",
+      "AI crafts unique, contextual comments for each account, no duplicate or spammy text.",
   },
   {
     icon: Clock,
@@ -37,7 +37,7 @@ const features = [
     icon: Radio,
     title: "Live SSE Updates",
     description:
-      "Real-time job progress streamed to your dashboard — no polling, no delays.",
+      "Real-time job progress streamed to your dashboard, no polling, no delays.",
   },
 ];
 

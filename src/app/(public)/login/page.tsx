@@ -42,7 +42,7 @@ export default function LoginPage() {
     });
   };
   return (
-    <div className="mx-auto max-w-md overflow-hidden">
+    <div className="mx-auto w-md pt-24 overflow-hidden">
       <Card className="glass shadow-card">
         <CardHeader className="pb-3">
           <div className="flex items-center gap-2 mb-1">
@@ -57,9 +57,9 @@ export default function LoginPage() {
         </CardHeader>
         <CardContent className="space-y-3">
           <form className="space-y-3" onSubmit={handleLogin}>
-            <div>
+            <div className="space-y-2">
               <label
-                className="text-xs text-muted-foreground"
+                className="text-xs text-muted-foreground block"
                 htmlFor="password"
               >
                 Password
@@ -72,6 +72,7 @@ export default function LoginPage() {
                 autoComplete="current-password"
                 required
               />
+              <small className="text-muted-foreground">Hint: admin</small>
             </div>
             <Button
               disabled={isPending}

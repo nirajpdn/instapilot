@@ -2,10 +2,11 @@
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Rocket } from "lucide-react";
+import Link from "next/link";
 
 export default function HeroSection() {
   return (
-    <section className="relative px-6 overflow-hidden">
+    <section className="relative px-6 pt-24 overflow-hidden">
       <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-150 h-150 rounded-full bg-primary/5 blur-[120px] pointer-events-none" />
       <div className="absolute bottom-0 left-0 right-0 h-px bg-linear-to-r from-transparent via-border to-transparent" />
 
@@ -34,12 +35,13 @@ export default function HeroSection() {
           </p>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <Button variant="hero" size="lg" className="text-base px-8">
-              Get Started
-              <ArrowRight className="w-4 h-4 ml-1" />
+            <Button asChild variant="hero" size="lg" className="text-base px-8">
+              <Link href="/overview">
+                Get Started <ArrowRight className="w-4 h-4 ml-1" />
+              </Link>
             </Button>
-            <Button variant="glow" size="lg" className="text-base px-8">
-              View Dashboard
+            <Button asChild variant="glow" size="lg" className="text-base px-8">
+              <Link href="/overview">View Dashboard</Link>
             </Button>
           </div>
         </motion.div>

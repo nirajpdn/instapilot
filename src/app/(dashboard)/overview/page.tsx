@@ -24,7 +24,7 @@ function StatCard({
     <Card key={label} className="glass shadow-card">
       <CardContent className="pt-4 pb-3 px-4">
         <div className="flex items-center justify-between mb-3">
-          <div className="w-8 h-8 rounded-md bg-primary/10 flex items-center justify-center">
+          <div className="w-8 h-8 rounded-md bg-primary/10 flex text-primary items-center justify-center">
             {icon}
           </div>
         </div>

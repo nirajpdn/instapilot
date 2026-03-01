@@ -5,6 +5,7 @@ import { useSession } from "../store/use-session";
 import { Rocket } from "lucide-react";
 import { Button } from "./ui/button";
 import ThemeToggle from "./theme-toggle";
+import { ProfileDropdown } from "./profile-dropdown";
 
 const Topbar = () => {
   const isAuthenticated = useSession((s) => s.isAuthenticated);
@@ -21,7 +22,7 @@ const Topbar = () => {
 
           <div className="hidden md:flex items-center gap-4 text-sm text-muted-foreground">
             <a
-              href="#features"
+              href="/#features"
               className="hover:text-foreground transition-colors"
             >
               Features
@@ -32,6 +33,7 @@ const Topbar = () => {
                 <Link href="/overview">Launch App</Link>
               </Button>
             )}
+            <ProfileDropdown />
           </div>
         </div>
       </nav>

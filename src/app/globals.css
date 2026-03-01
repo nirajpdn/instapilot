@@ -126,13 +126,13 @@
   --chart-3-bg: hsl(32 95% 48% / 0.05);
   --chart-4-bg: hsl(32 95% 48% / 0.025);
   --chart-5-bg: hsl(20 90% 42% / 0.12);
-  --background: oklch(1 0 0);
+  --background: oklch(97.113% 0.00332 67.035);
   --foreground: oklch(0.145 0 0);
   --sidebar: oklch(0.985 0 0);
 }
 
 .dark {
-  --background: oklch(0.145 0 0);
+  --background: oklch(14.326% 0.00567 246.516);
   --foreground: oklch(0.985 0 0);
 
   --card: oklch(0.205 0 0);

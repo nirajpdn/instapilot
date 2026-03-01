@@ -9,7 +9,7 @@ export default async function RootLayout({
   return (
     <div className="h-screen flex flex-col">
       <Topbar />
-      <div className="space-y-5 pt-24 flex-1 shrink-0">{children}</div>
+      <div className="space-y-5 flex-1 shrink-0">{children}</div>
       <Footer />
     </div>
   );

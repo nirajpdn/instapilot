@@ -404,8 +404,8 @@ export function AccountsClient({ initialAccounts }: Props) {
           </CardHeader>
           <CardContent>
             <form className="space-y-3" onSubmit={handleSaveSession}>
-              <div className="space-y-1.5">
-                <label className="text-xs text-muted-foreground">
+              <div className="space-y-2">
+                <label className="text-xs block text-muted-foreground">
                   Instagram username
                 </label>
                 <Input
@@ -416,8 +416,8 @@ export function AccountsClient({ initialAccounts }: Props) {
                   required
                 />
               </div>
-              <div className="space-y-1.5">
-                <label className="text-xs text-muted-foreground">
+              <div className="space-y-2">
+                <label className="text-xs block text-muted-foreground">
                   Display name (optional)
                 </label>
                 <Input
@@ -428,8 +428,8 @@ export function AccountsClient({ initialAccounts }: Props) {
                   required
                 />
               </div>
-              <div className="space-y-1.5">
-                <label className="text-xs text-muted-foreground">
+              <div className="space-y-2">
+                <label className="text-xs block text-muted-foreground">
                   StorageState JSON
                 </label>
                 <Textarea
