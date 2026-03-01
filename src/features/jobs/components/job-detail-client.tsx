@@ -28,7 +28,7 @@ import { useEffect, useState } from "react";
 
 type JobTarget = {
   id: string;
-  status: string;
+  status: $Enums.CommentTargetStatus;
   generatedComment: string | null;
   errorMessage: string | null;
   account: { username: string };
@@ -300,7 +300,7 @@ export function JobDetailClient({ jobId, initialJob, initialLogs }: Props) {
                     <TableCell>
                       <Badge variant={asc.variant} className="text-[10px]">
                         <asc.icon
-                          className={`w-3 h-3 mr-1 ${acc.status === "running" ? "animate-spin" : ""}`}
+                          className={`w-3 h-3 mr-1 ${acc.status === "RUNNING" ? "animate-spin" : ""}`}
                         />
                         {asc.label}
                       </Badge>

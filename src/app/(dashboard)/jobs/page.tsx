@@ -32,12 +32,12 @@ function StatusBadge({ status }: { status: $Enums.CommentJobStatus }) {
     PARTIAL: {
       icon: Loader2,
       label: "Partial",
-      className: "bg-primary/15 text-primary border-primary/20",
+      className: "bg-primary/15 text-primary border-primary/20 animate-spin",
     },
     RUNNING: {
       icon: Loader2,
       label: "Running",
-      className: "bg-primary/15 text-primary border-primary/20",
+      className: "bg-primary/15 text-primary border-primary/20 animate-spin",
     },
     FAILED: {
       icon: XCircle,
@@ -102,7 +102,7 @@ export default async function JobsPage() {
           </div>
         )}
         {jobs.map((job) => (
-          <Link key={job.id} href={`/jobs/${job.id}`}>
+          <Link key={job.id} className="block" href={`/jobs/${job.id}`}>
             <Card className="glass shadow-card group hover:border-primary/20 transition-colors cursor-pointer">
               <CardContent className="py-3.5 px-4">
                 <div className="flex items-center justify-between">
