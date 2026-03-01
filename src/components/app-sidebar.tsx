@@ -7,6 +7,10 @@ import {
   LogOut,
   Rocket,
   Home,
+  Sun,
+  Moon,
+  SunMoon,
+  ChevronsUpDown,
 } from "lucide-react";
 import {
   Sidebar,
@@ -19,6 +23,8 @@ import {
   SidebarHeader,
   SidebarFooter,
   SidebarSeparator,
+  SidebarRail,
+  useSidebar,
 } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { usePathname } from "next/navigation";
@@ -26,6 +32,15 @@ import Link from "next/link";
 import ThemeToggle from "./theme-toggle";
 import { SignOutDialog } from "./signout-dialog";
 import { useState } from "react";
+import { cn } from "@/lib/utils";
+import { NavUser } from "./nav-user";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "./ui/dropdown-menu";
+import { useTheme } from "next-themes";
 
 const navItems = [
   { title: "Home", url: "/", icon: Home },
@@ -37,30 +52,28 @@ const navItems = [
 
 export function AppSidebar() {
   const pathname = usePathname();
+  const { open: sidebarOpen } = useSidebar();
   const [open, setOpen] = useState(false);
+  const { setTheme } = useTheme();
   return (
     <>
-      <Sidebar className="border-r border-border/50">
-        <SidebarHeader className="p-4">
+      <Sidebar collapsible={"icon"} className="border-r border-border/50">
+        <SidebarHeader className={cn(!sidebarOpen ? "p-2" : "p-4")}>
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-gradient-primary flex items-center justify-center shadow-glow">
-              <Rocket className="w-4 h-4 text-primary-foreground" />
+            <div className="flex aspect-square size-8 rounded-lg bg-gradient-primary items-center justify-center shadow-glow text-primary-foreground">
+              <Rocket className="size-4" />
             </div>
-            <div>
-              <span className="font-bold text-sm tracking-tight text-foreground">
-                InstaPilot
+            <div className="grid flex-1 text-start text-sm leading-tight">
+              <span className="truncate font-bold text-sm">{"InstaPilot"}</span>
+              <span className="truncate text-[10px] text-muted-foreground text-xs mt-0.5">
+                {"Automation Suite"}
               </span>
-              <p className="text-[10px] text-muted-foreground leading-none mt-0.5">
-                Automation Suite
-              </p>
             </div>
           </div>
         </SidebarHeader>
-
-        <SidebarSeparator />
-
+        <SidebarSeparator className="mx-0" />
         <SidebarContent className="px-2 pt-2">
-          <SidebarGroup>
+          <SidebarGroup className={cn(!sidebarOpen && "p-0")}>
             <SidebarGroupContent>
               <SidebarMenu>
                 {navItems.map((item) => (
@@ -73,26 +86,40 @@ export function AppSidebar() {
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                 ))}
+                <SidebarMenuItem>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <SidebarMenuButton>
+                        <Sun className="w-4 h-4 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
+                        <Moon className="absolute w-4 h-4 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+                        <span className="truncate">Switch Theme</span>
+                        <ChevronsUpDown className="ms-auto size-4" />
+                      </SidebarMenuButton>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent className="w-48">
+                      <DropdownMenuItem onClick={() => setTheme("light")}>
+                        <Sun className="size-4" /> Light
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => setTheme("dark")}>
+                        <Moon className="size-4" /> Dark
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => setTheme("system")}>
+                        <SunMoon className="size-4" /> System
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </SidebarMenuItem>
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>
         </SidebarContent>
-
+        <SidebarSeparator className="mx-0" />
         <SidebarFooter className="p-3">
-          <SidebarSeparator className="mb-2" />
           <div className="flex items-center gap-1">
-            <ThemeToggle />
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setOpen(true)}
-              className="flex-1 justify-start text-muted-foreground hover:text-foreground gap-2"
-            >
-              <LogOut className="w-4 h-4" />
-              <span className="text-xs">Sign Out</span>
-            </Button>
+            <NavUser />
           </div>
         </SidebarFooter>
+        <SidebarRail />
       </Sidebar>
       <SignOutDialog open={!!open} onOpenChange={setOpen} />
     </>

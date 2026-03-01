@@ -17,7 +17,7 @@ import { SignOutDialog } from "./signout-dialog";
 import { LayoutDashboard, LogOut } from "lucide-react";
 import { useSession } from "@/store/use-session";
 
-const user = {
+export const user = {
   name: "Admin",
   image: "",
   email: "admin@instapilot.ai",
