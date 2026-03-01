@@ -47,9 +47,8 @@ Next.js full-stack web app for a multi-account Instagram comment manager with:
   - `npm run dev:all` (development)
   - `npm run start:all` (production, self-hosted; builds worker via `tsconfig.worker.json` and runs `dist-worker/worker/index.js`)
 - If you only need the web app, use `npm run start:web`.
-- Vercel serverless runtime does not support long-lived background processes; run this stack on a VM/container host for continuous worker execution.
 
-## Current connection flow (MVP)
+## Current connection flow
 
 Preferred:
 1. Open `/accounts`
@@ -65,7 +64,7 @@ Fallback:
 4. Copy the printed `storageState` JSON
 5. Paste it into `/accounts`
 
-## Implemented MVP status
+## Implemented status
 
 - Multi-account connect/disconnect dashboard with server-managed encrypted sessions
 - Live session validation (Playwright)
@@ -128,10 +127,9 @@ src/
 - `/commenter` supports `Dry run` mode (generates comments and logs, skips Instagram posting).
 - Failure screenshots in logs can be previewed inline and opened via `/api/screenshot/[file].png`.
 
-## After schema changes
+## Sync Database
 
 If you pull new code after changes to `prisma/schema.prisma`, run:
 
 - `npm run prisma:generate`
 - `npm run prisma:migrate`
-   - includes Tailwind CSS v4 (`tailwindcss` + `@tailwindcss/postcss`)
