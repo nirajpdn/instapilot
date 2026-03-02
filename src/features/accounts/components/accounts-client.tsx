@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { ConfirmDialog } from "@/components/confirm-dialog";
 import { $Enums } from "@prisma/client";
 import {
   CheckCircle2,
@@ -89,6 +90,11 @@ export function AccountsClient({ initialAccounts }: Props) {
     ),
   );
   const [isPending, startTransition] = useTransition();
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [pendingDeleteAccount, setPendingDeleteAccount] = useState<{
+    id: string;
+    username: string;
+  } | null>(null);
 
   useEffect(() => {
     setSettingsDrafts(
@@ -156,6 +162,39 @@ export function AccountsClient({ initialAccounts }: Props) {
       throw new Error(data.error ?? data.reason ?? "Request failed");
     }
     return data;
+  }
+
+  function handleDeleteAccount(account: Pick<AccountRow, "id" | "username">) {
+    setBusyId(account.id);
+    setError(null);
+    setFeedback(null);
+
+    startTransition(async () => {
+      try {
+        const response = await fetch(`/api/accounts/${account.id}/delete`, {
+          method: "POST",
+        });
+        const data = (await response.json()) as {
+          ok?: boolean;
+          error?: string;
+        };
+        if (!response.ok) {
+          throw new Error(data.error ?? "Failed to delete account");
+        }
+        setFeedback(`Deleted @${account.username}`);
+        toast.success(`Deleted @${account.username}`);
+        setIsDeleteDialogOpen(false);
+        setPendingDeleteAccount(null);
+        router.refresh();
+      } catch (e) {
+        const message =
+          e instanceof Error ? e.message : "Failed to delete account";
+        setError(message);
+        toast.error(message);
+      } finally {
+        setBusyId(null);
+      }
+    });
   }
 
   async function startBrowserLoginForAccount(account: {
@@ -352,6 +391,28 @@ export function AccountsClient({ initialAccounts }: Props) {
 
   return (
     <section className="space-y-5">
+      <ConfirmDialog
+        open={isDeleteDialogOpen}
+        onOpenChange={(open) => {
+          setIsDeleteDialogOpen(open);
+          if (!open && !isPending) {
+            setPendingDeleteAccount(null);
+          }
+        }}
+        title="Delete account"
+        desc={
+          pendingDeleteAccount
+            ? `Delete @${pendingDeleteAccount.username}? This will permanently remove the account.`
+            : "This action cannot be undone."
+        }
+        destructive
+        confirmText="Delete"
+        isLoading={isPending}
+        handleConfirm={() => {
+          if (!pendingDeleteAccount || isPending) return;
+          handleDeleteAccount(pendingDeleteAccount);
+        }}
+      />
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Accounts</h1>
         <p className="text-muted-foreground text-sm mt-1">
@@ -555,7 +616,18 @@ export function AccountsClient({ initialAccounts }: Props) {
                         <Link2Off className="w-3.5 h-3.5" /> Disconnect
                       </DropdownMenuItem>
                       <DropdownMenuSeparator />
-                      <DropdownMenuItem className="text-destructive hover:text-red-500!">
+                      <DropdownMenuItem
+                        className="text-destructive hover:text-red-500!"
+                        disabled={busyId === account.id || isPending}
+                        onSelect={(event) => {
+                          event.preventDefault();
+                          setPendingDeleteAccount({
+                            id: account.id,
+                            username: account.username,
+                          });
+                          setIsDeleteDialogOpen(true);
+                        }}
+                      >
                         <Trash2 className="w-3.5 h-3.5 text-current" />
                         Delete
                       </DropdownMenuItem>
