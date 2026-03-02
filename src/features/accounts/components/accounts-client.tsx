@@ -19,6 +19,15 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { ConfirmDialog } from "@/components/confirm-dialog";
+import {
+  AlertDialog,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { $Enums } from "@prisma/client";
 import {
   CheckCircle2,
@@ -30,6 +39,7 @@ import {
   Power,
   PowerOff,
   RefreshCcw,
+  Settings,
   Settings2,
   Shield,
   Trash2,
@@ -95,6 +105,9 @@ export function AccountsClient({ initialAccounts }: Props) {
     id: string;
     username: string;
   } | null>(null);
+  const [isLimitDialogOpen, setIsLimitDialogOpen] = useState(false);
+  const [pendingLimitAccount, setPendingLimitAccount] =
+    useState<AccountRow | null>(null);
 
   useEffect(() => {
     setSettingsDrafts(
@@ -191,6 +204,57 @@ export function AccountsClient({ initialAccounts }: Props) {
           e instanceof Error ? e.message : "Failed to delete account";
         setError(message);
         toast.error(message);
+      } finally {
+        setBusyId(null);
+      }
+    });
+  }
+
+  function handleOpenLimitSettings(account: AccountRow) {
+    setPendingLimitAccount(account);
+    setSettingsDrafts((prev) => ({
+      ...prev,
+      [account.id]: prev[account.id] ?? {
+        minDelayMs: account.minDelayMs,
+        maxDelayMs: account.maxDelayMs,
+        minCooldownSec: account.minCooldownSec,
+      },
+    }));
+    setIsLimitDialogOpen(true);
+  }
+
+  function handleSaveLimitSettings() {
+    if (!pendingLimitAccount) return;
+    const account = pendingLimitAccount;
+    const draft = settingsDrafts[account.id];
+    if (!draft) return;
+
+    setBusyId(account.id);
+    setError(null);
+    setFeedback(null);
+
+    startTransition(async () => {
+      try {
+        const response = await fetch(`/api/accounts/${account.id}/settings`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(draft),
+        });
+        const data = (await response.json()) as {
+          error?: string;
+        };
+        if (!response.ok) {
+          throw new Error(data.error ?? "Failed to save settings");
+        }
+        setFeedback(`Saved throttle settings for @${account.username}`);
+        toast.success(`Saved throttle settings for @${account.username}`);
+        setIsLimitDialogOpen(false);
+        setPendingLimitAccount(null);
+        router.refresh();
+      } catch (e) {
+        setError(e instanceof Error ? e.message : "Failed to save settings");
       } finally {
         setBusyId(null);
       }
@@ -479,6 +543,131 @@ export function AccountsClient({ initialAccounts }: Props) {
           handleDeleteAccount(pendingDeleteAccount);
         }}
       />
+      <AlertDialog
+        open={isLimitDialogOpen}
+        onOpenChange={(open) => {
+          setIsLimitDialogOpen(open);
+          if (!open && !isPending) {
+            setPendingLimitAccount(null);
+          }
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader className="text-left">
+            <AlertDialogTitle>Limit settings</AlertDialogTitle>
+            <AlertDialogDescription>
+              Configure delay and cooldown limits for{" "}
+              <span className="font-medium text-foreground">
+                @{pendingLimitAccount?.username ?? "account"}
+              </span>
+              .
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+
+          {pendingLimitAccount ? (
+            <div className="grid min-w-56 gap-2">
+              <label className="mb-0 flex items-center gap-2">
+                <span className="w-20 text-xs font-medium text-ink-500">
+                  Min Delay
+                </span>
+                <Input
+                  type="number"
+                  min={0}
+                  step={100}
+                  value={
+                    settingsDrafts[pendingLimitAccount.id]?.minDelayMs ??
+                    pendingLimitAccount.minDelayMs
+                  }
+                  onChange={(e) =>
+                    setSettingsDrafts((prev) => ({
+                      ...prev,
+                      [pendingLimitAccount.id]: {
+                        ...(prev[pendingLimitAccount.id] ?? {
+                          minDelayMs: pendingLimitAccount.minDelayMs,
+                          maxDelayMs: pendingLimitAccount.maxDelayMs,
+                          minCooldownSec: pendingLimitAccount.minCooldownSec,
+                        }),
+                        minDelayMs: Number(e.target.value),
+                      },
+                    }))
+                  }
+                  className="w-28"
+                />
+              </label>
+              <label className="mb-0 flex items-center gap-2">
+                <span className="w-20 text-xs font-medium text-ink-500">
+                  Max Delay
+                </span>
+                <Input
+                  type="number"
+                  min={0}
+                  step={100}
+                  value={
+                    settingsDrafts[pendingLimitAccount.id]?.maxDelayMs ??
+                    pendingLimitAccount.maxDelayMs
+                  }
+                  onChange={(e) =>
+                    setSettingsDrafts((prev) => ({
+                      ...prev,
+                      [pendingLimitAccount.id]: {
+                        ...(prev[pendingLimitAccount.id] ?? {
+                          minDelayMs: pendingLimitAccount.minDelayMs,
+                          maxDelayMs: pendingLimitAccount.maxDelayMs,
+                          minCooldownSec: pendingLimitAccount.minCooldownSec,
+                        }),
+                        maxDelayMs: Number(e.target.value),
+                      },
+                    }))
+                  }
+                  className="w-28"
+                />
+              </label>
+              <label className="mb-0 flex items-center gap-2">
+                <span className="w-20 text-xs font-medium text-ink-500">
+                  Cooldown
+                </span>
+                <Input
+                  type="number"
+                  min={0}
+                  step={1}
+                  value={
+                    settingsDrafts[pendingLimitAccount.id]?.minCooldownSec ??
+                    pendingLimitAccount.minCooldownSec
+                  }
+                  onChange={(e) =>
+                    setSettingsDrafts((prev) => ({
+                      ...prev,
+                      [pendingLimitAccount.id]: {
+                        ...(prev[pendingLimitAccount.id] ?? {
+                          minDelayMs: pendingLimitAccount.minDelayMs,
+                          maxDelayMs: pendingLimitAccount.maxDelayMs,
+                          minCooldownSec: pendingLimitAccount.minCooldownSec,
+                        }),
+                        minCooldownSec: Number(e.target.value),
+                      },
+                    }))
+                  }
+                  className="w-28"
+                />
+              </label>
+            </div>
+          ) : null}
+
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isPending}>Cancel</AlertDialogCancel>
+            <Button
+              onClick={handleSaveLimitSettings}
+              disabled={
+                !pendingLimitAccount ||
+                busyId === pendingLimitAccount?.id ||
+                isPending
+              }
+            >
+              Save changes
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Accounts</h1>
         <p className="text-muted-foreground text-sm mt-1">
@@ -635,7 +824,7 @@ export function AccountsClient({ initialAccounts }: Props) {
           )}
           {initialAccounts.map((account) => (
             <Card key={account.username} className="glass shadow-card">
-              <CardContent className="flex items-center justify-between py-3 px-4">
+              <CardContent className="flex flex-wrap items-center justify-between py-3 px-4 gap-4">
                 <div className="flex items-center gap-3">
                   <div className="w-9 h-9 rounded-full bg-secondary flex items-center justify-center">
                     <UserCircle className="w-5 h-5 text-muted-foreground" />
@@ -656,7 +845,7 @@ export function AccountsClient({ initialAccounts }: Props) {
                     </span>
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-3">
                   {statusBadge(account.status)}
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
@@ -669,12 +858,33 @@ export function AccountsClient({ initialAccounts }: Props) {
                         <MoreVertical className="w-4 h-4" />
                       </Button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-48">
-                      <DropdownMenuItem>
-                        <Settings2 className="w-3.5 h-3.5" /> Limit Setting
-                      </DropdownMenuItem>
+                    <DropdownMenuContent align="end" className="w-50">
+                      <div className="flex items-center gap-2 justify-between p-2">
+                        <div className="flex flex-col gap-1 text-xs text-muted-foreground">
+                          <span>
+                            Delay : ({account.minDelayMs} - {account.maxDelayMs}
+                            ) ms
+                          </span>
+                          <span>Cooldown : {account.minCooldownSec} sec</span>
+                        </div>
+                        <Button
+                          size="icon"
+                          className="h-7 w-7 rounded-sm"
+                          variant="ghost"
+                          onClick={(event) => {
+                            event.preventDefault();
+                            handleOpenLimitSettings(account);
+                          }}
+                        >
+                          <Settings className="w-3.5 h-3.5" />
+                        </Button>
+                      </div>
+                      <DropdownMenuSeparator />
                       <DropdownMenuItem
-                        onClick={() => handleValidateSession(account)}
+                        onSelect={(event) => {
+                          event.preventDefault();
+                          handleValidateSession(account);
+                        }}
                       >
                         <RefreshCcw className="w-3.5 h-3.5" /> Validate Session
                       </DropdownMenuItem>
@@ -682,14 +892,20 @@ export function AccountsClient({ initialAccounts }: Props) {
                         account.status,
                       ) && (
                         <DropdownMenuItem
-                          onClick={() => handleReconnect(account)}
+                          onSelect={(event) => {
+                            event.preventDefault();
+                            handleReconnect(account);
+                          }}
                         >
                           <Power className="w-3.5 h-3.5" /> Reconnect
                         </DropdownMenuItem>
                       )}
                       {account.status === "ACTIVE" && (
                         <DropdownMenuItem
-                          onClick={() => handleDisconnect(account)}
+                          onSelect={(event) => {
+                            event.preventDefault();
+                            handleDisconnect(account);
+                          }}
                         >
                           <Link2Off className="w-3.5 h-3.5" /> Disconnect
                         </DropdownMenuItem>
