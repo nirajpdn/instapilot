@@ -113,7 +113,7 @@ export default function DashboardPreview() {
             Real-time <span className="text-gradient">dashboard</span>
           </h2>
           <p className="text-muted-foreground text-lg max-w-xl mx-auto">
-            Monitor every job, every account, every comment — all in one place.
+            Monitor every job, every account, every comment, all in one place.
           </p>
         </motion.div>
 
