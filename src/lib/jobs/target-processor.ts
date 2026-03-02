@@ -256,6 +256,7 @@ export async function processCommentTarget(payload: CommentTargetJobPayload) {
     });
     await logTargetEvent(target.id, "INFO", "Generated unique comment", {
       length: generatedComment.length,
+      comment: generatedComment,
     });
 
     const cooldownMs = Math.max(0, target.account.minCooldownSec) * 1000;
@@ -328,9 +329,14 @@ export async function processCommentTarget(payload: CommentTargetJobPayload) {
           finishedAt: new Date(),
         },
       });
-      await logTargetEvent(target.id, "INFO", "Dry run enabled, skipped Instagram posting", {
-        dryRun: true,
-      });
+      await logTargetEvent(
+        target.id,
+        "INFO",
+        "Dry run enabled, skipped Instagram posting",
+        {
+          dryRun: true,
+        },
+      );
       await refreshJobAggregate(payload.jobId);
       return { ok: true as const, dryRun: true as const };
     }
@@ -349,7 +355,10 @@ export async function processCommentTarget(payload: CommentTargetJobPayload) {
       if (/session expired|login|challenge|checkpoint/i.test(errorMessage)) {
         await prisma.instagramAccount.update({
           where: { id: target.accountId },
-          data: { status: InstagramAccountStatus.REQUIRES_RECONNECT, lastValidatedAt: new Date() },
+          data: {
+            status: InstagramAccountStatus.REQUIRES_RECONNECT,
+            lastValidatedAt: new Date(),
+          },
         });
       }
 
@@ -378,6 +387,7 @@ export async function processCommentTarget(payload: CommentTargetJobPayload) {
     });
     await logTargetEvent(target.id, "INFO", "Comment posted successfully", {
       commentLength: generatedComment.length,
+      comment: generatedComment,
     });
 
     await prisma.instagramAccount.update({
@@ -388,10 +398,16 @@ export async function processCommentTarget(payload: CommentTargetJobPayload) {
     await refreshJobAggregate(payload.jobId);
     return { ok: true as const };
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Unhandled worker error";
-    await logTargetEvent(payload.targetId, "ERROR", "Unhandled target execution error", {
-      error: message,
-    }).catch(() => undefined);
+    const message =
+      error instanceof Error ? error.message : "Unhandled worker error";
+    await logTargetEvent(
+      payload.targetId,
+      "ERROR",
+      "Unhandled target execution error",
+      {
+        error: message,
+      },
+    ).catch(() => undefined);
     await prisma.commentJobTarget
       .update({
         where: { id: payload.targetId },
@@ -435,7 +451,10 @@ export async function processQueuedTargets(limit = 1) {
         accountId: t.accountId,
         postUrl: t.job.normalizedPostUrl,
       });
-      results.push({ targetId: t.id, outcome: "ok" in result ? "ok" : "skipped" });
+      results.push({
+        targetId: t.id,
+        outcome: "ok" in result ? "ok" : "skipped",
+      });
     } catch {
       results.push({ targetId: t.id, outcome: "error" });
     }
