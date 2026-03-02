@@ -9,13 +9,27 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { $Enums } from "@prisma/client";
 import {
   CheckCircle2,
   CloudBackup,
   Globe,
   KeyRound,
+  Link2Off,
+  MoreVertical,
+  Power,
+  PowerOff,
+  RefreshCcw,
+  Settings2,
   Shield,
   Trash2,
   UserCircle,
@@ -30,7 +44,7 @@ type AccountRow = {
   id: string;
   username: string;
   displayName: string | null;
-  status: string;
+  status: $Enums.InstagramAccountStatus;
   minDelayMs: number;
   maxDelayMs: number;
   minCooldownSec: number;
@@ -311,7 +325,7 @@ export function AccountsClient({ initialAccounts }: Props) {
     switch (status) {
       case "ACTIVE":
         return (
-          <Badge className="bg-success/15 text-success border-success/20 text-[10px] gap-1">
+          <Badge className="bg-success/15 hover:bg-success/30 text-success border-success/20 text-[10px] gap-1">
             <CheckCircle2 className="w-3 h-3" /> Active
           </Badge>
         );
@@ -319,7 +333,7 @@ export function AccountsClient({ initialAccounts }: Props) {
         return (
           <Badge
             variant="outline"
-            className="text-orange-400 border-orange-400/20 text-[10px] gap-1"
+            className="text-orange-400 hover:bg-primary/30 border-orange-400/20 text-[10px] gap-1"
           >
             <CloudBackup className="w-3 h-3" /> Require Reconnect
           </Badge>
@@ -328,9 +342,9 @@ export function AccountsClient({ initialAccounts }: Props) {
         return (
           <Badge
             variant="outline"
-            className="text-destructive border-destructive/30 text-[10px] gap-1"
+            className="text-destructive hover:bg-destructive/30 border-destructive/30 text-[10px] gap-1"
           >
-            <XCircle className="w-3 h-3" /> {status}
+            <XCircle className="w-3 h-3" /> Disconnected
           </Badge>
         );
     }
@@ -515,15 +529,38 @@ export function AccountsClient({ initialAccounts }: Props) {
                     </span>
                   </div>
                 </div>
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2">
                   {statusBadge(account.status)}
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-7 w-7 text-muted-foreground hover:text-destructive"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </Button>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                      >
+                        <MoreVertical className="w-4 h-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-48">
+                      <DropdownMenuItem>
+                        <Settings2 className="w-3.5 h-3.5" /> Limit Setting
+                      </DropdownMenuItem>
+                      <DropdownMenuItem>
+                        <RefreshCcw className="w-3.5 h-3.5" /> Validate Session
+                      </DropdownMenuItem>
+                      <DropdownMenuItem>
+                        <Power className="w-3.5 h-3.5" /> Reconnect
+                      </DropdownMenuItem>
+                      <DropdownMenuItem>
+                        <Link2Off className="w-3.5 h-3.5" /> Disconnect
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem className="text-destructive hover:text-red-500!">
+                        <Trash2 className="w-3.5 h-3.5 text-current" />
+                        Delete
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
               </CardContent>
             </Card>
