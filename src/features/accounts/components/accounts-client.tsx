@@ -197,6 +197,67 @@ export function AccountsClient({ initialAccounts }: Props) {
     });
   }
 
+  const handleReconnect = (account: AccountRow) => {
+    setBusyId(account.id);
+    startTransition(async () => {
+      try {
+        await startBrowserLoginForAccount({
+          username: account.username,
+          displayName: account.displayName,
+        });
+      } catch (e) {
+        setError(
+          e instanceof Error ? e.message : "Failed to start reconnect flow",
+        );
+      } finally {
+        setBusyId(null);
+      }
+    });
+  };
+
+  const handleValidateSession = (account: AccountRow) => {
+    setBusyId(account.id);
+    const toastId = toast.loading("Validating session...", {
+      duration: Infinity,
+    });
+    startTransition(async () => {
+      try {
+        const data = await runAccountAction(
+          `/api/accounts/${account.id}/validate`,
+        );
+
+        const feedback = data.ok
+          ? `@${account.username} session is valid`
+          : `@${account.username} requires reconnect (${data.reason ?? "invalid"})`;
+        setFeedback(feedback);
+        toast.success(feedback);
+        router.refresh();
+      } catch (e) {
+        setError(e instanceof Error ? e.message : "Validation failed");
+      } finally {
+        toast.dismiss(toastId);
+        setBusyId(null);
+      }
+    });
+  };
+
+  const handleDisconnect = (account: AccountRow) => {
+    setBusyId(account.id);
+    toast.loading("Disconnecting...", { duration: Infinity });
+    startTransition(async () => {
+      try {
+        await runAccountAction(`/api/accounts/${account.id}/disconnect`);
+        setFeedback(`Disconnected @${account.username}`);
+        router.refresh();
+      } catch (e) {
+        setError(e instanceof Error ? e.message : "Disconnect failed");
+      } finally {
+        toast.dismiss();
+        setBusyId(null);
+      }
+    });
+  };
+
   async function startBrowserLoginForAccount(account: {
     username: string;
     displayName: string | null;
@@ -300,6 +361,9 @@ export function AccountsClient({ initialAccounts }: Props) {
     if (!connectSessionId) return;
     setError(null);
     setFeedback(null);
+    toast.loading("Cancelling browser login...", {
+      duration: Infinity,
+    });
     startTransition(async () => {
       try {
         const response = await fetch(
@@ -322,6 +386,8 @@ export function AccountsClient({ initialAccounts }: Props) {
         setError(
           e instanceof Error ? e.message : "Failed to cancel browser login",
         );
+      } finally {
+        toast.dismiss();
       }
     });
   };
@@ -597,6 +663,7 @@ export function AccountsClient({ initialAccounts }: Props) {
                       <Button
                         variant="ghost"
                         size="icon"
+                        disabled={isPending}
                         className="h-7 w-7 text-muted-foreground hover:text-destructive"
                       >
                         <MoreVertical className="w-4 h-4" />
@@ -606,15 +673,27 @@ export function AccountsClient({ initialAccounts }: Props) {
                       <DropdownMenuItem>
                         <Settings2 className="w-3.5 h-3.5" /> Limit Setting
                       </DropdownMenuItem>
-                      <DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() => handleValidateSession(account)}
+                      >
                         <RefreshCcw className="w-3.5 h-3.5" /> Validate Session
                       </DropdownMenuItem>
-                      <DropdownMenuItem>
-                        <Power className="w-3.5 h-3.5" /> Reconnect
-                      </DropdownMenuItem>
-                      <DropdownMenuItem>
-                        <Link2Off className="w-3.5 h-3.5" /> Disconnect
-                      </DropdownMenuItem>
+                      {["REQUIRES_RECONNECT", "DISCONNECTED"].includes(
+                        account.status,
+                      ) && (
+                        <DropdownMenuItem
+                          onClick={() => handleReconnect(account)}
+                        >
+                          <Power className="w-3.5 h-3.5" /> Reconnect
+                        </DropdownMenuItem>
+                      )}
+                      {account.status === "ACTIVE" && (
+                        <DropdownMenuItem
+                          onClick={() => handleDisconnect(account)}
+                        >
+                          <Link2Off className="w-3.5 h-3.5" /> Disconnect
+                        </DropdownMenuItem>
+                      )}
                       <DropdownMenuSeparator />
                       <DropdownMenuItem
                         className="text-destructive hover:text-red-500!"
