@@ -217,8 +217,8 @@
     @apply scroll-smooth overscroll-none;
   }
   body {
-    @apply bg-background text-foreground;
-    font-family: var(--font-sans)
+    @apply bg-background text-foreground selection:bg-blue-500 selection:text-white;
+    font-family: var(--font-sans);
   }
 }
 
