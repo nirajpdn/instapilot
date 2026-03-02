@@ -36,7 +36,7 @@ type JobTarget = {
 
 type JobRecord = {
   id: string;
-  status: string;
+  status: $Enums.CommentJobStatus;
   normalizedPostUrl: string;
   dryRun?: boolean;
   isPaused?: boolean;
@@ -88,9 +88,10 @@ const targetStatusConfig: Record<
 type LogLevel = "INFO" | "WARN" | "ERROR";
 
 const levelColors: Record<LogLevel, string> = {
-  ERROR: "bg-destructive/15 text-destructive border-destructive/20",
-  WARN: "bg-warning/15 text-warning border-warning/20",
-  INFO: "bg-primary/15 text-primary border-primary/20",
+  ERROR:
+    "bg-destructive/15 text-destructive border-destructive/20 hover:text-white",
+  WARN: "bg-warning/15 text-warning border-warning/20 hover:text-white",
+  INFO: "bg-primary/15 text-primary border-primary/20 hover:text-white",
 };
 
 type Props = {
@@ -170,15 +171,6 @@ export function JobDetailClient({ jobId, initialJob, initialLogs }: Props) {
     };
   }, [jobId]);
 
-  const badgeClass = (status: string) => {
-    if (status === "SUCCESS" || status === "COMPLETED")
-      return "badge badge-success";
-    if (status === "FAILED" || status === "CANCELED")
-      return "badge badge-danger";
-    if (status === "PAUSED" || status === "PARTIAL") return "badge badge-warn";
-    return "badge badge-neutral";
-  };
-
   const sc = jobStatusMap[job.status as $Enums.CommentJobStatus];
 
   return (
@@ -208,7 +200,7 @@ export function JobDetailClient({ jobId, initialJob, initialLogs }: Props) {
                   {job.normalizedPostUrl}
                 </p>
                 <div className="flex items-center gap-2 pt-2 flex-wrap">
-                  {(job.status === "running" || job.status === "pending") && (
+                  {["RUNNING", "PARTIAL", "QUEUED"].includes(job.status) && (
                     <>
                       <Button
                         size="sm"
@@ -247,8 +239,10 @@ export function JobDetailClient({ jobId, initialJob, initialLogs }: Props) {
                 </div>
                 <p className="text-[11px] text-muted-foreground pt-1">
                   Live updates:{" "}
-                  <span className="text-primary font-medium">live</span> • Last
-                  refresh:{" "}
+                  <span className="text-primary font-medium">
+                    {streamStatus}
+                  </span>{" "}
+                  • Last refresh:{" "}
                   {lastRefreshAt && (
                     <>{new Date(lastRefreshAt).toLocaleString()}</>
                   )}
@@ -256,7 +250,7 @@ export function JobDetailClient({ jobId, initialJob, initialLogs }: Props) {
               </div>
               <Badge variant={sc.variant} className="text-xs shrink-0">
                 <sc.icon
-                  className={`w-3 h-3 mr-1 ${job.status === "running" ? "animate-spin" : ""}`}
+                  className={`w-3 h-3 mr-1 ${job.status === "RUNNING" ? "animate-spin" : ""}`}
                 />
                 {sc.label}
               </Badge>
